@@ -1,4 +1,4 @@
-module ChronoverseAPI
+module chronoverseapi
 
 go 1.23.1
 

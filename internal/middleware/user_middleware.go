@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"ChronoverseAPI/internal/model"
-	"ChronoverseAPI/internal/service"
-	"ChronoverseAPI/internal/utility"
+	"chronoverseapi/internal/model"
+	"chronoverseapi/internal/service"
+	"chronoverseapi/internal/utility"
 	"context"
 	"log/slog"
 	"net/http"
@@ -27,7 +27,7 @@ func (m *UserMiddleware) Authorize(next http.Handler) http.Handler {
 		}
 
 		token := strings.TrimPrefix(authHeader, "Bearer ")
-		auth := &model.Authorization{Token: token}
+		auth := &model.Auth{Token: token}
 
 		authResult, err := m.UserService.Verify(r.Context(), auth)
 		if err != nil {

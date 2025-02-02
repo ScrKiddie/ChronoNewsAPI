@@ -1,12 +1,12 @@
 package config
 
 import (
-	"ChronoverseAPI/internal/adapter"
-	"ChronoverseAPI/internal/controller"
-	"ChronoverseAPI/internal/middleware"
-	"ChronoverseAPI/internal/repository"
-	"ChronoverseAPI/internal/route"
-	"ChronoverseAPI/internal/service"
+	"chronoverseapi/internal/adapter"
+	"chronoverseapi/internal/controller"
+	"chronoverseapi/internal/middleware"
+	"chronoverseapi/internal/repository"
+	"chronoverseapi/internal/route"
+	"chronoverseapi/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"

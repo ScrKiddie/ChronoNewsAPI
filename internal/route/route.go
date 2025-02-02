@@ -1,8 +1,8 @@
 package route
 
 import (
-	"ChronoverseAPI/internal/controller"
-	"ChronoverseAPI/internal/middleware"
+	"chronoverseapi/internal/controller"
+	"chronoverseapi/internal/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -25,6 +25,10 @@ func (r *Route) Setup() {
 			auth.Patch("/current/profile", r.UserController.UpdateProfile)
 			auth.Patch("/current/password", r.UserController.UpdatePassword)
 			auth.Get("/", r.UserController.Search)
+			auth.Post("/", r.UserController.Create)
+			auth.Get("/{id}", r.UserController.Get)
+			auth.Put("/{id}", r.UserController.Update)
+			auth.Delete("/{id}", r.UserController.Delete)
 		})
 	})
 }

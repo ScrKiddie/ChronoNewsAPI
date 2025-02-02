@@ -1,7 +1,7 @@
 package config
 
 import (
-	"ChronoverseAPI/internal/entity"
+	"chronoverseapi/internal/entity"
 	"context"
 	"fmt"
 	slogGorm "github.com/orandin/slog-gorm"
@@ -57,6 +57,9 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
 
 	entities := []interface{}{
 		&entity.User{},
+		&entity.Article{},
+		&entity.File{},
+		&entity.Category{},
 	}
 
 	for _, e := range entities {

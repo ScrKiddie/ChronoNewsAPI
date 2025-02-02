@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"ChronoverseAPI/internal/constant"
-	"ChronoverseAPI/internal/entity"
-	"ChronoverseAPI/internal/model"
+	"chronoverseapi/internal/constant"
+	"chronoverseapi/internal/entity"
+	"chronoverseapi/internal/model"
 	"gorm.io/gorm"
 	"strings"
 )
@@ -44,15 +44,15 @@ func (u *UserRepository) FindById(db *gorm.DB, entity *entity.User, id int32) er
 	return db.Where("id = ?", id).First(entity).Error
 }
 
-func (u *UserRepository) FindByIds(db *gorm.DB, entity *entity.User, ids []int32) error {
-	return db.Where("id IN ?", ids).Find(&entity).Error
+func (u *UserRepository) FindNonAdminByID(db *gorm.DB, entity *entity.User, id int32) error {
+	return db.Where("id = ?", id).Where("role != ?", constant.Admin).First(entity).Error
 }
 
 func (u *UserRepository) IsAdmin(db *gorm.DB, id int32) error {
 	return db.Where("id = ?", id).Where("role = ?", constant.Admin).First(&entity.User{}).Error
 }
 
-func (u *UserRepository) Search(db *gorm.DB, request *model.UserSearch, entities *[]entity.User) (int64, error) {
+func (u *UserRepository) SearchNonAdmin(db *gorm.DB, request *model.UserSearch, entities *[]entity.User) (int64, error) {
 	var conditions []string
 	var args []interface{}
 
@@ -78,6 +78,8 @@ func (u *UserRepository) Search(db *gorm.DB, request *model.UserSearch, entities
 	if request.Role != "" {
 		db = db.Where("role = ?", request.Role)
 	}
+
+	db = db.Where("role != ?", constant.Admin)
 
 	var total int64
 	err := db.Model(&entity.User{}).Count(&total).Error

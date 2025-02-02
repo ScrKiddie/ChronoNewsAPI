@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ChronoverseAPI/internal/config"
+	"chronoverseapi/internal/config"
 	"log"
 	"log/slog"
 	"net/http"

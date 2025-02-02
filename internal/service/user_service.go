@@ -1,12 +1,12 @@
 package service
 
 import (
-	"ChronoverseAPI/internal/adapter"
-	"ChronoverseAPI/internal/constant"
-	"ChronoverseAPI/internal/entity"
-	"ChronoverseAPI/internal/model"
-	"ChronoverseAPI/internal/repository"
-	"ChronoverseAPI/internal/utility"
+	"chronoverseapi/internal/adapter"
+	"chronoverseapi/internal/constant"
+	"chronoverseapi/internal/entity"
+	"chronoverseapi/internal/model"
+	"chronoverseapi/internal/repository"
+	"chronoverseapi/internal/utility"
 	"context"
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
@@ -78,7 +78,7 @@ func (u *UserService) Register(ctx context.Context, request *model.UserRegister)
 	return nil
 }
 
-func (u *UserService) Login(ctx context.Context, request *model.UserLogin) (*model.UserResponse, error) {
+func (u *UserService) Login(ctx context.Context, request *model.UserLogin) (*model.Auth, error) {
 	if err := u.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrUnauthorized
@@ -104,16 +104,16 @@ func (u *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 		return nil, utility.ErrUnauthorized
 	}
 
-	token, err := utility.CreateJWT(u.Config.GetString("jwt.secret"), u.Config.GetInt("jwt.exp"), user.ID)
+	token, err := utility.CreateJWT(u.Config.GetString("jwt.secret"), user.Role, u.Config.GetInt("jwt.exp"), user.ID)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServerError
 	}
 
-	return &model.UserResponse{Token: token}, nil
+	return &model.Auth{Token: token}, nil
 }
 
-func (u *UserService) Verify(ctx context.Context, request *model.Authorization) (*model.UserAuthorization, error) {
+func (u *UserService) Verify(ctx context.Context, request *model.Auth) (*model.Auth, error) {
 	auth, err := utility.ValidateJWT(u.Config.GetString("jwt.secret"), request.Token)
 	if err != nil {
 		slog.Error(err.Error())
@@ -130,7 +130,7 @@ func (u *UserService) Verify(ctx context.Context, request *model.Authorization) 
 	return auth, nil
 }
 
-func (u *UserService) Current(ctx context.Context, request *model.UserAuthorization) (*model.UserResponse, error) {
+func (u *UserService) Current(ctx context.Context, request *model.Auth) (*model.UserResponse, error) {
 	if err := u.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrUnauthorized
@@ -151,7 +151,7 @@ func (u *UserService) Current(ctx context.Context, request *model.UserAuthorizat
 	}, nil
 }
 
-func (u *UserService) UpdateProfile(ctx context.Context, request *model.UserUpdateProfile) (*model.UserResponse, error) {
+func (u *UserService) UpdateProfile(ctx context.Context, request *model.UserUpdateProfile, auth *model.Auth) (*model.UserResponse, error) {
 	if err := u.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrBadRequest
@@ -160,16 +160,16 @@ func (u *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	tx := u.DB.WithContext(ctx).Begin()
 	defer tx.Rollback()
 
-	if unique := u.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 && unique != request.ID {
+	if unique := u.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 && unique != auth.ID {
 		return nil, utility.NewCustomError(http.StatusConflict, "Email already exists")
 	}
 
-	if unique := u.UserRepository.FindIDByPhoneNumber(tx, request.PhoneNumber); unique != 0 && unique != request.ID {
+	if unique := u.UserRepository.FindIDByPhoneNumber(tx, request.PhoneNumber); unique != 0 && unique != auth.ID {
 		return nil, utility.NewCustomError(http.StatusConflict, "Phone number already exist")
 	}
 
 	user := new(entity.User)
-	if err := u.UserRepository.FindById(tx, user, request.ID); err != nil {
+	if err := u.UserRepository.FindById(tx, user, auth.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServerError
 	}
@@ -216,7 +216,7 @@ func (u *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	}, nil
 }
 
-func (u *UserService) UpdatePassword(ctx context.Context, request *model.UserUpdatePassword) error {
+func (u *UserService) UpdatePassword(ctx context.Context, request *model.UserUpdatePassword, auth *model.Auth) error {
 	if err := u.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
 		return utility.ErrBadRequest
@@ -226,7 +226,7 @@ func (u *UserService) UpdatePassword(ctx context.Context, request *model.UserUpd
 	defer tx.Rollback()
 
 	user := new(entity.User)
-	if err := u.UserRepository.FindById(tx, user, request.ID); err != nil {
+	if err := u.UserRepository.FindById(tx, user, auth.ID); err != nil {
 		slog.Error(err.Error())
 		return utility.ErrInternalServerError
 	}
@@ -256,16 +256,16 @@ func (u *UserService) UpdatePassword(ctx context.Context, request *model.UserUpd
 	return nil
 }
 
-func (u *UserService) Search(ctx context.Context, request *model.UserSearch) (*[]model.UserResponse, *model.Pagination, error) {
+func (u *UserService) Search(ctx context.Context, request *model.UserSearch, auth *model.Auth) (*[]model.UserResponse, *model.Pagination, error) {
 	db := u.DB.WithContext(ctx)
 
-	if err := u.UserRepository.IsAdmin(db, request.ID); err != nil {
+	if err := u.UserRepository.IsAdmin(db, auth.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, nil, utility.ErrForbidden
 	}
 
 	var users []entity.User
-	total, err := u.UserRepository.Search(db, request, &users)
+	total, err := u.UserRepository.SearchNonAdmin(db, request, &users)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, nil, utility.ErrInternalServerError
@@ -296,5 +296,217 @@ func (u *UserService) Search(ctx context.Context, request *model.UserSearch) (*[
 	return &response, &pagination, nil
 }
 
-//update
-//delete
+func (u *UserService) Get(ctx context.Context, request *model.UserGet, auth *model.Auth) (*model.UserResponse, error) {
+	db := u.DB.WithContext(ctx)
+
+	if err := u.UserRepository.IsAdmin(db, auth.ID); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrForbidden
+	}
+
+	if err := u.Validator.Struct(request); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrBadRequest
+	}
+
+	user := new(entity.User)
+	if err := u.UserRepository.FindNonAdminByID(db, user, request.ID); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrNotFound
+	}
+
+	return &model.UserResponse{
+		ID:             user.ID,
+		Name:           user.Name,
+		ProfilePicture: user.ProfilePicture,
+		PhoneNumber:    user.PhoneNumber,
+		Email:          user.Email,
+	}, nil
+}
+
+func (u *UserService) Create(ctx context.Context, request *model.UserCreate, auth *model.Auth) error {
+	tx := u.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	if err := u.UserRepository.IsAdmin(tx, auth.ID); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrForbidden
+	}
+
+	if err := u.Validator.Struct(request); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrBadRequest
+	}
+
+	if unique := u.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 && unique != auth.ID {
+		return utility.NewCustomError(http.StatusConflict, "Email already exists")
+	}
+
+	if unique := u.UserRepository.FindIDByPhoneNumber(tx, request.PhoneNumber); unique != 0 && unique != auth.ID {
+		return utility.NewCustomError(http.StatusConflict, "Phone number already exist")
+	}
+
+	user := new(entity.User)
+	if request.ProfilePicture != nil {
+		user.ProfilePicture = utility.CreateFileName(request.ProfilePicture)
+	}
+
+	hashedPassword, err := utility.HashPassword(request.Password)
+	if err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServerError
+	}
+
+	user.Name = request.Name
+	user.Email = request.Email
+	user.PhoneNumber = request.PhoneNumber
+	user.Password = hashedPassword
+	user.Role = request.Role
+
+	if err := u.UserRepository.Update(tx, user); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServerError
+	}
+
+	if request.ProfilePicture != nil {
+		if err := u.FileStorage.Store(request.ProfilePicture, u.Config.GetString("storage.profile")+user.ProfilePicture); err != nil {
+			slog.Error(err.Error())
+			return utility.ErrInternalServerError
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServerError
+	}
+
+	return nil
+}
+
+func (u *UserService) Update(ctx context.Context, request *model.UserUpdate, auth *model.Auth) (*model.UserResponse, error) {
+	tx := u.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	if err := u.UserRepository.IsAdmin(tx, auth.ID); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrForbidden
+	}
+
+	if err := u.Validator.Struct(request); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrBadRequest
+	}
+
+	user := new(entity.User)
+	if err := u.UserRepository.FindNonAdminByID(tx, user, request.ID); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrNotFound
+	}
+
+	if request.Email != user.Email {
+		if unique := u.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 {
+			return nil, utility.NewCustomError(http.StatusConflict, "Email already exists")
+		}
+	}
+
+	if request.PhoneNumber != user.PhoneNumber {
+		if unique := u.UserRepository.FindIDByPhoneNumber(tx, request.PhoneNumber); unique != 0 {
+			return nil, utility.NewCustomError(http.StatusConflict, "Phone number already exists")
+		}
+	}
+
+	user.Name = request.Name
+	user.Email = request.Email
+	user.PhoneNumber = request.PhoneNumber
+	user.Role = request.Role
+
+	oldFileName := user.ProfilePicture
+
+	if request.ProfilePicture != nil {
+		user.ProfilePicture = utility.CreateFileName(request.ProfilePicture)
+	}
+
+	if request.Password != "" {
+		hashedPassword, err := utility.HashPassword(request.Password)
+		if err != nil {
+			slog.Error(err.Error())
+			return nil, utility.ErrInternalServerError
+		}
+		user.Password = hashedPassword
+	}
+
+	if err := u.UserRepository.Update(tx, user); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrInternalServerError
+	}
+
+	if request.ProfilePicture != nil && oldFileName != "" {
+		if err := u.FileStorage.Delete(u.Config.GetString("storage.profile") + oldFileName); err != nil {
+			slog.Error(err.Error())
+			return nil, utility.ErrInternalServerError
+		}
+	}
+
+	if request.ProfilePicture != nil {
+		if err := u.FileStorage.Store(
+			request.ProfilePicture,
+			u.Config.GetString("storage.profile")+user.ProfilePicture,
+		); err != nil {
+			slog.Error(err.Error())
+			return nil, utility.ErrInternalServerError
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrInternalServerError
+	}
+
+	return &model.UserResponse{
+		ID:             user.ID,
+		Name:           user.Name,
+		ProfilePicture: user.ProfilePicture,
+		PhoneNumber:    user.PhoneNumber,
+		Email:          user.Email,
+	}, nil
+}
+
+func (u *UserService) Delete(ctx context.Context, request *model.UserDelete, auth *model.Auth) error {
+	tx := u.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	if err := u.UserRepository.IsAdmin(tx, auth.ID); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrForbidden
+	}
+
+	if err := u.Validator.Struct(request); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrBadRequest
+	}
+
+	user := new(entity.User)
+	if err := u.UserRepository.FindNonAdminByID(tx, user, request.ID); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrNotFound
+	}
+
+	if err := u.UserRepository.Delete(tx, user); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServerError
+	}
+
+	if user.ProfilePicture != "" {
+		if err := u.FileStorage.Delete(u.Config.GetString("storage.profile") + user.ProfilePicture); err != nil {
+			slog.Error(err.Error())
+			return utility.ErrInternalServerError
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServerError
+	}
+
+	return nil
+}

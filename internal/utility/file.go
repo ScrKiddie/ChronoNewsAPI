@@ -15,7 +15,7 @@ func CreateFileName(file *multipart.FileHeader) string {
 	return uuid.New().String() + filepath.Ext(file.Filename)
 }
 
-func WriteBase64File(base64File string) ([]byte, error) {
+func Base64ToFile(base64File string) ([]byte, error) {
 	file, err := base64.StdEncoding.DecodeString(base64File)
 	if err != nil {
 		return nil, err
