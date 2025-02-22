@@ -67,11 +67,11 @@ func Image(fl validator.FieldLevel) bool {
 	}
 
 	fileOpened, err := file.Open()
-	defer fileOpened.Close()
 	if err != nil {
 		slog.Error(err.Error())
 		return false
 	}
+	defer fileOpened.Close()
 
 	fileHeader := make([]byte, 512)
 	if _, err := fileOpened.Read(fileHeader); err != nil {

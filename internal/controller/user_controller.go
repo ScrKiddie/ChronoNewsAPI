@@ -108,7 +108,7 @@ func (u *UserController) Search(w http.ResponseWriter, r *http.Request) {
 	request.Page = int64(page)
 	request.Size = int64(size)
 	request.Name = r.URL.Query().Get("name")
-	request.PhoneNumber = r.URL.Query().Get("phone_number")
+	request.PhoneNumber = r.URL.Query().Get("phoneNumber")
 	request.Email = r.URL.Query().Get("email")
 
 	response, pagination, err := u.UserService.Search(r.Context(), request, auth)
@@ -148,16 +148,17 @@ func (u *UserController) Create(w http.ResponseWriter, r *http.Request) {
 	request.Name = r.FormValue("name")
 	request.PhoneNumber = r.FormValue("phoneNumber")
 	request.Email = r.FormValue("email")
-	request.Role = r.FormValue("role")
 	request.Password = r.FormValue("password")
 	_, request.ProfilePicture, _ = r.FormFile("profilePicture")
 
-	if err := u.UserService.Create(r.Context(), request, auth); err != nil {
+	response, err := u.UserService.Create(r.Context(), request, auth)
+
+	if err != nil {
 		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
 		return
 	}
 
-	utility.CreateSuccessResponse(w, http.StatusCreated, "User created successfully")
+	utility.CreateSuccessResponse(w, http.StatusCreated, response)
 }
 
 func (u *UserController) Update(w http.ResponseWriter, r *http.Request) {
@@ -176,7 +177,6 @@ func (u *UserController) Update(w http.ResponseWriter, r *http.Request) {
 	request.PhoneNumber = r.FormValue("phoneNumber")
 	request.Email = r.FormValue("email")
 	request.Password = r.FormValue("password")
-	request.Role = r.FormValue("role")
 	_, request.ProfilePicture, _ = r.FormFile("profilePicture")
 
 	response, err := u.UserService.Update(r.Context(), request, auth)

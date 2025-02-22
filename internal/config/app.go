@@ -23,19 +23,22 @@ type BootstrapConfig struct {
 func Bootstrap(b *BootstrapConfig) {
 	//repository
 	userRepository := repository.NewUserRepository()
+	categoryRepository := repository.NewCategoryRepository()
 
 	//adapter
 	fileStorage := adapter.NewFileStorage()
 
 	//service
 	userService := service.NewUserService(b.DB, userRepository, fileStorage, b.Validator, b.Config)
+	categoryService := service.NewCategoryService(b.DB, categoryRepository, userRepository, b.Validator)
 
 	//controller
 	userController := controller.NewUserController(userService)
+	categoryController := controller.NewCategoryController(categoryService)
 
 	//middleware
 	userMiddleware := middleware.NewUserMiddleware(userService)
 
-	router := route.Route{App: b.App, UserController: userController, UserMiddleware: userMiddleware}
+	router := route.Route{App: b.App, UserController: userController, UserMiddleware: userMiddleware, CategoryController: categoryController}
 	router.Setup()
 }

@@ -11,7 +11,6 @@ type Article struct {
 	Content       string   `gorm:"column:content;type:text;not null"`
 	PublishedDate int64    `gorm:"column:published_date;type:bigint;not null"`
 	LastUpdated   int64    `gorm:"column:last_updated;type:bigint;not null"`
-	Banner        string   `gorm:"column:banner;type:varchar(100);"`
 }
 
 func (Article) TableName() string {

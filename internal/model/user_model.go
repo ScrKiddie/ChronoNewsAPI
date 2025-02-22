@@ -13,20 +13,20 @@ type UserResponse struct {
 
 type UserRegister struct {
 	Name        string `validate:"required,min=3,max=255" json:"name"`
-	PhoneNumber string `validate:"required,e164,max=20" json:"phoneNumber"`
+	PhoneNumber string `validate:"required,max=20" json:"phoneNumber"`
 	Email       string `validate:"required,email,max=255" json:"email"`
 	Password    string `validate:"required,passwordformat,min=8,max=255" json:"password"`
 }
 
 type UserLogin struct {
 	Email       string `validate:"omitempty,email,exclusiveor=PhoneNumber" json:"email"`
-	PhoneNumber string `validate:"omitempty,e164,exclusiveor=Email,max=20" json:"phoneNumber"`
+	PhoneNumber string `validate:"omitempty,exclusiveor=Email,max=20" json:"phoneNumber"`
 	Password    string `validate:"required,passwordformat,min=8,max=255" json:"password"`
 }
 
 type UserUpdateProfile struct {
 	Name           string                `validate:"required,min=3,max=255" json:"name"`
-	PhoneNumber    string                `validate:"required,e164,max=20" json:"phoneNumber"`
+	PhoneNumber    string                `validate:"required,max=20" json:"phoneNumber"`
 	Email          string                `validate:"required,email,max=255" json:"email"`
 	ProfilePicture *multipart.FileHeader `validate:"omitempty,image" json:"profilePicture"`
 }
@@ -48,21 +48,20 @@ type UserSearch struct {
 
 type UserCreate struct {
 	Name           string                `validate:"required,min=3,max=255" json:"name"`
-	PhoneNumber    string                `validate:"required,e164,max=20" json:"phoneNumber"`
+	PhoneNumber    string                `validate:"required,max=20" json:"phoneNumber"`
 	Email          string                `validate:"required,email,max=255" json:"email"`
 	ProfilePicture *multipart.FileHeader `validate:"omitempty,image" json:"profilePicture"`
 	Password       string                `validate:"required,passwordformat,min=8,max=255" json:"password"`
-	Role           string                `validate:"required,oneof=user journalist" json:"role"`
 }
 
 type UserUpdate struct {
 	ID             int32                 `validate:"required,numeric"`
 	Name           string                `validate:"required,min=3,max=255" json:"name"`
-	PhoneNumber    string                `validate:"required,e164,max=20" json:"phoneNumber"`
+	PhoneNumber    string                `validate:"required,max=20" json:"phoneNumber"`
 	Email          string                `validate:"required,email,max=255" json:"email"`
 	ProfilePicture *multipart.FileHeader `validate:"omitempty,image" json:"profilePicture"`
-	Password       string                `validate:"required,passwordformat,min=8,max=255" json:"password"`
-	Role           string                `validate:"required,oneof=user journalist" json:"role"`
+	Password       string                `validate:"omitempty,passwordformat,min=8,max=255" json:"password"`
+	//Role           string                `validate:"required,oneof=user journalist" json:"role"`
 }
 
 type UserDelete struct {

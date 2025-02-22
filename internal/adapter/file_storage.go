@@ -23,7 +23,12 @@ func (f *FileStorage) Store(file *multipart.FileHeader, path string) error {
 	if err != nil {
 		return err
 	}
+	defer fileStored.Close()
 	_, err = io.Copy(fileStored, fileOpened)
+	if err != nil {
+		_ = os.Remove(path)
+		return err
+	}
 	if err != nil {
 		return err
 	}
@@ -43,20 +48,22 @@ func (f *FileStorage) Copy(tempPath, destPath string) error {
 		return err
 	}
 	defer tempFile.Close()
+
 	destFile, err := os.Create(destPath)
 	if err != nil {
 		return err
 	}
-	defer destFile.Close()
+	defer func() {
+		if err != nil {
+			_ = os.Remove(destPath)
+		}
+		destFile.Close()
+	}()
 
 	_, err = io.Copy(destFile, tempFile)
 	if err != nil {
 		return err
 	}
 
-	if err := os.Remove(tempPath); err != nil {
-		return err
-	}
-
-	return nil
+	return os.Remove(tempPath)
 }

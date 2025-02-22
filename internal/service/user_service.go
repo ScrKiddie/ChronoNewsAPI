@@ -81,7 +81,7 @@ func (u *UserService) Register(ctx context.Context, request *model.UserRegister)
 func (u *UserService) Login(ctx context.Context, request *model.UserLogin) (*model.Auth, error) {
 	if err := u.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrUnauthorized
+		return nil, utility.NewCustomError(401, "Email atau password salah")
 	}
 
 	db := u.DB.WithContext(ctx)
@@ -91,7 +91,7 @@ func (u *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 	if request.Email != "" {
 		if err := u.UserRepository.FindPasswordByEmail(db, user, request.Email); err != nil {
 			slog.Error(err.Error())
-			return nil, utility.ErrUnauthorized
+			return nil, utility.NewCustomError(401, "Email atau password salah")
 		}
 	} else {
 		if err := u.UserRepository.FindPasswordByPhoneNumber(db, user, request.PhoneNumber); err != nil {
@@ -101,7 +101,7 @@ func (u *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 	}
 
 	if !utility.VerifyPassword(user.Password, request.Password) {
-		return nil, utility.ErrUnauthorized
+		return nil, utility.NewCustomError(401, "Email atau password salah")
 	}
 
 	token, err := utility.CreateJWT(u.Config.GetString("jwt.secret"), user.Role, u.Config.GetInt("jwt.exp"), user.ID)
@@ -232,7 +232,7 @@ func (u *UserService) UpdatePassword(ctx context.Context, request *model.UserUpd
 	}
 
 	if !utility.VerifyPassword(user.Password, request.OldPassword) {
-		return utility.ErrUnauthorized
+		return utility.NewCustomError(401, "Password lama salah")
 	}
 
 	hashedNewPassword, err := utility.HashPassword(request.Password)
@@ -324,26 +324,26 @@ func (u *UserService) Get(ctx context.Context, request *model.UserGet, auth *mod
 	}, nil
 }
 
-func (u *UserService) Create(ctx context.Context, request *model.UserCreate, auth *model.Auth) error {
+func (u *UserService) Create(ctx context.Context, request *model.UserCreate, auth *model.Auth) (*model.UserResponse, error) {
 	tx := u.DB.WithContext(ctx).Begin()
 	defer tx.Rollback()
 
 	if err := u.UserRepository.IsAdmin(tx, auth.ID); err != nil {
 		slog.Error(err.Error())
-		return utility.ErrForbidden
+		return nil, utility.ErrForbidden
 	}
 
 	if err := u.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
-		return utility.ErrBadRequest
+		return nil, utility.ErrBadRequest
 	}
 
-	if unique := u.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 && unique != auth.ID {
-		return utility.NewCustomError(http.StatusConflict, "Email already exists")
+	if unique := u.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 {
+		return nil, utility.NewCustomError(http.StatusConflict, "Email already exists")
 	}
 
-	if unique := u.UserRepository.FindIDByPhoneNumber(tx, request.PhoneNumber); unique != 0 && unique != auth.ID {
-		return utility.NewCustomError(http.StatusConflict, "Phone number already exist")
+	if unique := u.UserRepository.FindIDByPhoneNumber(tx, request.PhoneNumber); unique != 0 {
+		return nil, utility.NewCustomError(http.StatusConflict, "Phone number already exist")
 	}
 
 	user := new(entity.User)
@@ -354,33 +354,39 @@ func (u *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	hashedPassword, err := utility.HashPassword(request.Password)
 	if err != nil {
 		slog.Error(err.Error())
-		return utility.ErrInternalServerError
+		return nil, utility.ErrInternalServerError
 	}
 
 	user.Name = request.Name
 	user.Email = request.Email
 	user.PhoneNumber = request.PhoneNumber
 	user.Password = hashedPassword
-	user.Role = request.Role
+	user.Role = constant.Journalist
 
 	if err := u.UserRepository.Update(tx, user); err != nil {
 		slog.Error(err.Error())
-		return utility.ErrInternalServerError
+		return nil, utility.ErrInternalServerError
 	}
 
 	if request.ProfilePicture != nil {
 		if err := u.FileStorage.Store(request.ProfilePicture, u.Config.GetString("storage.profile")+user.ProfilePicture); err != nil {
 			slog.Error(err.Error())
-			return utility.ErrInternalServerError
+			return nil, utility.ErrInternalServerError
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
-		return utility.ErrInternalServerError
+		return nil, utility.ErrInternalServerError
 	}
 
-	return nil
+	return &model.UserResponse{
+		ID:             user.ID,
+		Name:           user.Name,
+		ProfilePicture: user.ProfilePicture,
+		PhoneNumber:    user.PhoneNumber,
+		Email:          user.Email,
+	}, nil
 }
 
 func (u *UserService) Update(ctx context.Context, request *model.UserUpdate, auth *model.Auth) (*model.UserResponse, error) {
@@ -418,7 +424,6 @@ func (u *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	user.Name = request.Name
 	user.Email = request.Email
 	user.PhoneNumber = request.PhoneNumber
-	user.Role = request.Role
 
 	oldFileName := user.ProfilePicture
 
