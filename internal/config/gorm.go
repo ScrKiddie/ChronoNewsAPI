@@ -57,7 +57,7 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
 
 	entities := []interface{}{
 		&entity.User{},
-		&entity.Article{},
+		&entity.Post{},
 		&entity.File{},
 		&entity.Category{},
 	}

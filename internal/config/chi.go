@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"log/slog"
 	"net/http"
@@ -27,5 +28,8 @@ func NewChi() *chi.Mux {
 			slog.Error(err.Error())
 		}
 	})
+
+	r.Use(middleware.Recoverer)
+
 	return r
 }

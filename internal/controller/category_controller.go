@@ -109,8 +109,7 @@ func (c *CategoryController) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *CategoryController) List(w http.ResponseWriter, r *http.Request) {
-	auth := r.Context().Value("auth").(*model.Auth)
-	response, err := c.CategoryService.List(r.Context(), auth)
+	response, err := c.CategoryService.List(r.Context())
 	if err != nil {
 		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
 		return

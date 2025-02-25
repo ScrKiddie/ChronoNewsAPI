@@ -12,6 +12,7 @@ type Route struct {
 	UserMiddleware     *middleware.UserMiddleware
 	UserController     *controller.UserController
 	CategoryController *controller.CategoryController
+	PostController     *controller.PostController
 }
 
 func (r *Route) Setup() {
@@ -19,6 +20,9 @@ func (r *Route) Setup() {
 		c.Group(func(guest chi.Router) {
 			guest.Post("/user/register", r.UserController.Register)
 			guest.Post("/user/login", r.UserController.Login)
+			guest.Get("/post", r.PostController.Search)
+			guest.Get("/post/{id}", r.PostController.Get)
+			guest.Get("/category", r.CategoryController.List)
 		})
 
 		c.Group(func(auth chi.Router) {
@@ -32,12 +36,16 @@ func (r *Route) Setup() {
 			auth.Put("/user/{id}", r.UserController.Update)
 			auth.Delete("/user/{id}", r.UserController.Delete)
 
-			auth.Get("/category", r.CategoryController.List)
 			auth.Post("/category", r.CategoryController.Create)
 			auth.Get("/category/{id}", r.CategoryController.Get)
 			auth.Put("/category/{id}", r.CategoryController.Update)
 			auth.Delete("/category/{id}", r.CategoryController.Delete)
+
+			auth.Post("/post", r.PostController.Create)
+			auth.Put("/post/{id}", r.PostController.Update)
+			auth.Delete("/post/{id}", r.PostController.Delete)
 		})
 	})
 	r.App.Handle("/profile_picture/*", http.StripPrefix("/profile_picture/", http.FileServer(http.Dir("./storage/profile_picture/"))))
+	r.App.Handle("/post_picture/*", http.StripPrefix("/post_picture/", http.FileServer(http.Dir("./storage/post_picture/"))))
 }

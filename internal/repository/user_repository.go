@@ -44,15 +44,15 @@ func (u *UserRepository) FindById(db *gorm.DB, entity *entity.User, id int32) er
 	return db.Where("id = ?", id).First(entity).Error
 }
 
-func (u *UserRepository) FindNonAdminByID(db *gorm.DB, entity *entity.User, id int32) error {
-	return db.Where("id = ?", id).Where("role != ?", constant.Admin).First(entity).Error
-}
-
 func (u *UserRepository) IsAdmin(db *gorm.DB, id int32) error {
 	return db.Where("id = ?", id).Where("role = ?", constant.Admin).First(&entity.User{}).Error
 }
 
-func (u *UserRepository) SearchNonAdmin(db *gorm.DB, request *model.UserSearch, entities *[]entity.User) (int64, error) {
+func (u *UserRepository) FindByID(db *gorm.DB, entity *entity.User, id int32) error {
+	return db.Where("id = ?", id).First(entity).Error
+}
+
+func (u *UserRepository) Search(db *gorm.DB, request *model.UserSearch, entities *[]entity.User, currentId int32) (int64, error) {
 	var conditions []string
 	var args []interface{}
 
@@ -71,27 +71,26 @@ func (u *UserRepository) SearchNonAdmin(db *gorm.DB, request *model.UserSearch, 
 		args = append(args, "%"+strings.ToLower(request.Name)+"%")
 	}
 
+	if request.Role == constant.Journalist || request.Role == constant.Admin {
+		conditions = append(conditions, "role = ?")
+		args = append(args, request.Role)
+	}
+
 	if len(conditions) > 0 {
 		db = db.Where(strings.Join(conditions, " OR "), args...)
 	}
 
-	if request.Role != "" {
-		db = db.Where("role = ?", request.Role)
-	}
-
-	db = db.Where("role != ?", constant.Admin)
-
 	var total int64
-	err := db.Model(&entity.User{}).Count(&total).Error
+	err := db.Model(&entity.User{}).Where("id != ?", currentId).Count(&total).Error
 	if err != nil {
 		return 0, err
 	}
 
-	err = db.Order("name ASC").
-		Limit(int(request.Size)).
-		Offset(int((request.Page - 1) * request.Size)).
-		Find(entities).
-		Error
+	if request.Page > 0 && request.Size > 0 {
+		db = db.Limit(int(request.Size)).Offset(int((request.Page - 1) * request.Size))
+	}
+
+	err = db.Debug().Where("id != ?", currentId).Order("name ASC").Find(entities).Error
 
 	return total, err
 }

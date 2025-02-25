@@ -22,6 +22,6 @@
   },
   "storage": {
     "profile": "YOUR_STORAGE_PATH",
-    "article": "YOUR_STORAGE_PATH"
+    "post": "YOUR_STORAGE_PATH"
   }
 }

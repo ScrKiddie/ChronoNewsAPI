@@ -1,9 +1,12 @@
 package adapter
 
 import (
+	"errors"
 	"io"
+	"log/slog"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 )
 
 type FileStorage struct {
@@ -36,13 +39,21 @@ func (f *FileStorage) Store(file *multipart.FileHeader, path string) error {
 }
 
 func (f *FileStorage) Delete(path string) error {
-	if err := os.Remove(path); err != nil {
+	err := os.Remove(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			slog.Warn("file already deleted or not exists", "path", path)
+			return nil
+		}
 		return err
 	}
 	return nil
 }
 
-func (f *FileStorage) Copy(tempPath, destPath string) error {
+func (f *FileStorage) Copy(fileName, tempDir, destDir string) error {
+	tempPath := filepath.Join(tempDir, fileName)
+	destPath := filepath.Join(destDir, fileName)
+
 	tempFile, err := os.Open(tempPath)
 	if err != nil {
 		return err
@@ -53,17 +64,12 @@ func (f *FileStorage) Copy(tempPath, destPath string) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err != nil {
-			_ = os.Remove(destPath)
-		}
-		destFile.Close()
-	}()
+	defer destFile.Close()
 
 	_, err = io.Copy(destFile, tempFile)
 	if err != nil {
 		return err
 	}
 
-	return os.Remove(tempPath)
+	return nil
 }

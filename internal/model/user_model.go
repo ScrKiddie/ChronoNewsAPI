@@ -9,6 +9,7 @@ type UserResponse struct {
 	PhoneNumber    string `json:"phoneNumber,omitempty"`
 	Email          string `json:"email,omitempty"`
 	Password       string `json:"password,omitempty"`
+	Role           string `json:"role,omitempty"`
 }
 
 type UserRegister struct {
@@ -25,10 +26,10 @@ type UserLogin struct {
 }
 
 type UserUpdateProfile struct {
-	Name           string                `validate:"required,min=3,max=255" json:"name"`
-	PhoneNumber    string                `validate:"required,max=20" json:"phoneNumber"`
-	Email          string                `validate:"required,email,max=255" json:"email"`
-	ProfilePicture *multipart.FileHeader `validate:"omitempty,image" json:"profilePicture"`
+	Name           string                `validate:"required,min=3,max=255"`
+	PhoneNumber    string                `validate:"required,max=20"`
+	Email          string                `validate:"required,email,max=255"`
+	ProfilePicture *multipart.FileHeader `validate:"omitempty,image"`
 }
 
 type UserUpdatePassword struct {
@@ -38,36 +39,37 @@ type UserUpdatePassword struct {
 }
 
 type UserSearch struct {
-	Name        string `validate:"omitempty" json:"name"`
-	PhoneNumber string `validate:"omitempty" json:"phoneNumber"`
-	Email       string `validate:"omitempty" json:"email"`
-	Role        string `validate:"omitempty" json:"role"`
-	Page        int64  `validate:"omitempty" json:"page"`
-	Size        int64  `validate:"omitempty" json:"size"`
+	Name        string `validate:"omitempty"`
+	PhoneNumber string `validate:"omitempty"`
+	Email       string `validate:"omitempty"`
+	Role        string `validate:"omitempty"`
+	Page        int64  `validate:"omitempty"`
+	Size        int64  `validate:"omitempty"`
 }
 
 type UserCreate struct {
-	Name           string                `validate:"required,min=3,max=255" json:"name"`
-	PhoneNumber    string                `validate:"required,max=20" json:"phoneNumber"`
-	Email          string                `validate:"required,email,max=255" json:"email"`
-	ProfilePicture *multipart.FileHeader `validate:"omitempty,image" json:"profilePicture"`
-	Password       string                `validate:"required,passwordformat,min=8,max=255" json:"password"`
+	Name           string                `validate:"required,min=3,max=255"`
+	PhoneNumber    string                `validate:"required,max=20"`
+	Email          string                `validate:"required,email,max=255"`
+	ProfilePicture *multipart.FileHeader `validate:"omitempty,image"`
+	Password       string                `validate:"required,passwordformat,min=8,max=255"`
+	Role           string                `validate:"required,oneof=admin journalist"`
 }
 
 type UserUpdate struct {
-	ID             int32                 `validate:"required,numeric"`
-	Name           string                `validate:"required,min=3,max=255" json:"name"`
-	PhoneNumber    string                `validate:"required,max=20" json:"phoneNumber"`
-	Email          string                `validate:"required,email,max=255" json:"email"`
-	ProfilePicture *multipart.FileHeader `validate:"omitempty,image" json:"profilePicture"`
-	Password       string                `validate:"omitempty,passwordformat,min=8,max=255" json:"password"`
-	//Role           string                `validate:"required,oneof=user journalist" json:"role"`
+	ID             int32                 `validate:"required"`
+	Name           string                `validate:"required,min=3,max=255"`
+	PhoneNumber    string                `validate:"required,max=20"`
+	Email          string                `validate:"required,email,max=255"`
+	ProfilePicture *multipart.FileHeader `validate:"omitempty,image"`
+	Password       string                `validate:"omitempty,passwordformat,min=8,max=255"`
+	Role           string                `validate:"required,oneof=admin journalist"`
 }
 
 type UserDelete struct {
-	ID int32 `validate:"required,numeric"`
+	ID int32 `validate:"required"`
 }
 
 type UserGet struct {
-	ID int32 `validate:"required,numeric"`
+	ID int32 `validate:"required"`
 }

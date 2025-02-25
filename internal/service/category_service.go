@@ -16,32 +16,34 @@ type CategoryService struct {
 	DB                 *gorm.DB
 	CategoryRepository *repository.CategoryRepository
 	UserRepository     *repository.UserRepository
+	PostRepository     *repository.PostRepository
 	Validator          *validator.Validate
 }
 
-func NewCategoryService(db *gorm.DB, categoryRepository *repository.CategoryRepository, userRepository *repository.UserRepository, validator *validator.Validate) *CategoryService {
+func NewCategoryService(db *gorm.DB, categoryRepository *repository.CategoryRepository, userRepository *repository.UserRepository, postRepository *repository.PostRepository, validator *validator.Validate) *CategoryService {
 	return &CategoryService{
 		DB:                 db,
 		CategoryRepository: categoryRepository,
 		UserRepository:     userRepository,
+		PostRepository:     postRepository,
 		Validator:          validator,
 	}
 }
 
-func (c *CategoryService) Create(ctx context.Context, request *model.CategoryCreate, auth *model.Auth) (*model.CategoryResponse, error) {
-	tx := c.DB.WithContext(ctx).Begin()
+func (s *CategoryService) Create(ctx context.Context, request *model.CategoryCreate, auth *model.Auth) (*model.CategoryResponse, error) {
+	tx := s.DB.WithContext(ctx).Begin()
 	defer tx.Rollback()
-	if err := c.UserRepository.IsAdmin(tx, auth.ID); err != nil {
+	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrForbidden
 	}
 
-	if err := c.Validator.Struct(request); err != nil {
+	if err := s.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrBadRequest
 	}
 
-	if categoryID, _ := c.CategoryRepository.FindIDByName(tx, request.Name); categoryID != 0 {
+	if categoryID, _ := s.CategoryRepository.FindIDByName(tx, request.Name); categoryID != 0 {
 		return nil, utility.NewCustomError(http.StatusConflict, "Category name already exists")
 	}
 
@@ -49,7 +51,7 @@ func (c *CategoryService) Create(ctx context.Context, request *model.CategoryCre
 		Name: request.Name,
 	}
 
-	if err := c.CategoryRepository.Create(tx, category); err != nil {
+	if err := s.CategoryRepository.Create(tx, category); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServerError
 	}
@@ -65,33 +67,33 @@ func (c *CategoryService) Create(ctx context.Context, request *model.CategoryCre
 	}, nil
 }
 
-func (c *CategoryService) Update(ctx context.Context, request *model.CategoryUpdate, auth *model.Auth) (*model.CategoryResponse, error) {
-	tx := c.DB.WithContext(ctx).Begin()
+func (s *CategoryService) Update(ctx context.Context, request *model.CategoryUpdate, auth *model.Auth) (*model.CategoryResponse, error) {
+	tx := s.DB.WithContext(ctx).Begin()
 	defer tx.Rollback()
 
-	if err := c.UserRepository.IsAdmin(tx, auth.ID); err != nil {
+	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrForbidden
 	}
 
-	if err := c.Validator.Struct(request); err != nil {
+	if err := s.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrBadRequest
 	}
 
 	category := new(entity.Category)
-	if err := c.CategoryRepository.FindById(tx, category, request.ID); err != nil {
+	if err := s.CategoryRepository.FindById(tx, category, request.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrNotFound
 	}
 
-	if categoryID, _ := c.CategoryRepository.FindIDByName(tx, request.Name); categoryID != 0 && categoryID != request.ID {
+	if categoryID, _ := s.CategoryRepository.FindIDByName(tx, request.Name); categoryID != 0 && categoryID != request.ID {
 		return nil, utility.NewCustomError(http.StatusConflict, "Category name already exists")
 	}
 
 	category.Name = request.Name
 
-	if err := c.CategoryRepository.Update(tx, category); err != nil {
+	if err := s.CategoryRepository.Update(tx, category); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServerError
 	}
@@ -107,26 +109,34 @@ func (c *CategoryService) Update(ctx context.Context, request *model.CategoryUpd
 	}, nil
 }
 
-func (c *CategoryService) Delete(ctx context.Context, request *model.CategoryDelete, auth *model.Auth) error {
-	tx := c.DB.WithContext(ctx).Begin()
+func (s *CategoryService) Delete(ctx context.Context, request *model.CategoryDelete, auth *model.Auth) error {
+	tx := s.DB.WithContext(ctx).Begin()
 	defer tx.Rollback()
-	if err := c.UserRepository.IsAdmin(tx, auth.ID); err != nil {
+	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
 		slog.Error(err.Error())
 		return utility.ErrForbidden
 	}
 
-	if err := c.Validator.Struct(request); err != nil {
+	if err := s.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
 		return utility.ErrBadRequest
 	}
 
+	ok, err := s.PostRepository.ExistsByCategoryID(tx, request.ID)
+	if err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServerError
+	} else if ok {
+		return utility.NewCustomError(http.StatusConflict, "Kategori digunakan pada berita")
+	}
+
 	category := new(entity.Category)
-	if err := c.CategoryRepository.FindById(tx, category, request.ID); err != nil {
+	if err := s.CategoryRepository.FindById(tx, category, request.ID); err != nil {
 		slog.Error(err.Error())
 		return utility.ErrNotFound
 	}
 
-	if err := c.CategoryRepository.Delete(tx, category); err != nil {
+	if err := s.CategoryRepository.Delete(tx, category); err != nil {
 		slog.Error(err.Error())
 		return utility.ErrInternalServerError
 	}
@@ -139,21 +149,21 @@ func (c *CategoryService) Delete(ctx context.Context, request *model.CategoryDel
 	return nil
 }
 
-func (c *CategoryService) Get(ctx context.Context, request *model.CategoryGet, auth *model.Auth) (*model.CategoryResponse, error) {
-	db := c.DB.WithContext(ctx)
+func (s *CategoryService) Get(ctx context.Context, request *model.CategoryGet, auth *model.Auth) (*model.CategoryResponse, error) {
+	db := s.DB.WithContext(ctx)
 
-	if err := c.UserRepository.IsAdmin(db, auth.ID); err != nil {
+	if err := s.UserRepository.IsAdmin(db, auth.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrForbidden
 	}
 
-	if err := c.Validator.Struct(request); err != nil {
+	if err := s.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrBadRequest
 	}
 
 	category := new(entity.Category)
-	if err := c.CategoryRepository.FindById(db, category, request.ID); err != nil {
+	if err := s.CategoryRepository.FindById(db, category, request.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrNotFound
 	}
@@ -164,16 +174,11 @@ func (c *CategoryService) Get(ctx context.Context, request *model.CategoryGet, a
 	}, nil
 }
 
-func (c *CategoryService) List(ctx context.Context, auth *model.Auth) (*[]model.CategoryResponse, error) {
-	db := c.DB.WithContext(ctx)
-
-	if err := c.UserRepository.IsAdmin(db, auth.ID); err != nil {
-		slog.Error(err.Error())
-		return nil, utility.ErrForbidden
-	}
+func (s *CategoryService) List(ctx context.Context) (*[]model.CategoryResponse, error) {
+	db := s.DB.WithContext(ctx)
 
 	var categories []entity.Category
-	if err := c.CategoryRepository.FindAll(db, &categories); err != nil {
+	if err := s.CategoryRepository.FindAll(db, &categories); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServerError
 	}

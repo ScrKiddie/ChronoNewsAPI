@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
+	"strings"
 )
 
 func NewValidator() *validator.Validate {
@@ -46,7 +48,23 @@ func Image(fl validator.FieldLevel) bool {
 	allowedExtensions := []string{".png", ".jpg", ".jpeg"}
 	allowedContentTypes := []string{"image/png", "image/jpeg"}
 	var maxSize int64 = 1024 * 1024
-	maxWidth, maxHeight := 320, 320
+
+	defaultMaxWidth, defaultMaxHeight := 320, 320
+
+	params := fl.Param()
+	maxWidth, maxHeight := defaultMaxWidth, defaultMaxHeight
+
+	if params != "" {
+		parts := strings.Split(params, "_")
+		if len(parts) == 2 {
+			if w, err := strconv.Atoi(parts[0]); err == nil {
+				maxWidth = w
+			}
+			if h, err := strconv.Atoi(parts[1]); err == nil {
+				maxHeight = h
+			}
+		}
+	}
 
 	file, ok := fl.Field().Interface().(multipart.FileHeader)
 	if !ok {
