@@ -4,6 +4,7 @@ import (
 	"chronoverseapi/internal/model"
 	"chronoverseapi/internal/service"
 	"chronoverseapi/internal/utility"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"log/slog"
 	"net/http"
@@ -70,8 +71,15 @@ func (c *PostController) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
-	auth := r.Context().Value("auth").(*model.Auth)
+	err := r.ParseMultipartForm(1 * 1024 * 1024 * 1024)
+	if err != nil {
+		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, "Request terlalu besar")
+		return
+	}
 
+	auth := r.Context().Value("auth").(*model.Auth)
+	fmt.Println(r.FormValue("categoryID"))
+	fmt.Println(r.FormValue("userID"))
 	categoryID, err := utility.ToInt32(r.FormValue("categoryID"))
 	if err != nil {
 		slog.Error(err.Error())
@@ -109,6 +117,12 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *PostController) Update(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(1 * 1024 * 1024 * 1024)
+	if err != nil {
+		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, "Request terlalu besar")
+		return
+	}
+
 	auth := r.Context().Value("auth").(*model.Auth)
 
 	categoryID, err := utility.ToInt32(r.FormValue("categoryID"))

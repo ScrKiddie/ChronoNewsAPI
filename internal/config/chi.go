@@ -28,7 +28,6 @@ func NewChi() *chi.Mux {
 			slog.Error(err.Error())
 		}
 	})
-
 	r.Use(middleware.Recoverer)
 
 	return r

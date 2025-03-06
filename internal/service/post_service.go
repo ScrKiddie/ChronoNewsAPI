@@ -174,6 +174,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	startTime := time.Now()
 	// parallel untuk decoding dan validasi file
 	doc.Find("img").Each(func(i int, g *goquery.Selection) {
 		src, exists := g.Attr("src")
@@ -211,8 +212,10 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		return nil, err
 	default:
 	}
+	decodingDuration := time.Since(startTime)
+	fmt.Printf("Proses Decoding dan Validasi File selesai dalam %s\n", decodingDuration)
 
-	// parallel untuk kompresi file dan write file ke temp dir
+	startTime = time.Now() // parallel untuk kompresi file dan write file ke temp dir
 	if len(fileDatas) > 0 {
 		for _, file := range fileDatas {
 			wg.Add(1)
@@ -248,6 +251,8 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		default:
 		}
 	}
+	compressionDuration := time.Since(startTime)
+	fmt.Printf("Proses Kompresi File ke Temp Dir selesai dalam %s\n", compressionDuration)
 
 	// defer agar memastikan tempfile dihapus sebelum return
 	defer func() {
@@ -311,7 +316,8 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 			return nil, utility.ErrInternalServerError
 		}
 	}
-	fmt.Println(fileNames)
+
+	startTime = time.Now()
 	// parallel untuk copy file dari temp dir ke dir utama
 	if len(fileNames) > 0 {
 		for _, fileName := range fileNames {
@@ -342,6 +348,8 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		default:
 		}
 	}
+	copyDuration := time.Since(startTime)
+	fmt.Printf("Proses Copy File Temp ke Dir utama selesai dalam %s\n", copyDuration)
 
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
@@ -370,7 +378,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	post := &entity.Post{}
 	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
 		request.UserID = auth.ID
-		if err := s.PostRepository.FindByIDAndUserID(tx, post, request.UserID, auth.ID); err != nil {
+		if err := s.PostRepository.FindByIDAndUserID(tx, post, request.ID, auth.ID); err != nil {
 			slog.Error(err.Error())
 			return nil, utility.ErrNotFound
 		}
@@ -673,7 +681,7 @@ func (s *PostService) Delete(ctx context.Context, request *model.PostDelete, aut
 	post := &entity.Post{}
 
 	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
-		if err := s.PostRepository.FindByIDAndUserID(tx, post, auth.ID, request.ID); err != nil {
+		if err := s.PostRepository.FindByIDAndUserID(tx, post, request.ID, auth.ID); err != nil {
 			slog.Error(err.Error())
 			return utility.ErrNotFound
 		}

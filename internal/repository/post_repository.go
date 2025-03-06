@@ -68,8 +68,8 @@ func (r *PostRepository) FindByID(db *gorm.DB, post *entity.Post, id int32) erro
 	return db.Where("id = ?", id).Preload("User").Preload("Category").First(post).Error
 }
 
-func (r *PostRepository) FindByIDAndUserID(db *gorm.DB, post *entity.Post, userID int32, id int32) error {
-	return db.Where("id = ?", id).Where("user_id = ?", userID).Preload("User").Preload("Category").First(post).Error
+func (r *PostRepository) FindByIDAndUserID(db *gorm.DB, post *entity.Post, postID int32, userID int32) error {
+	return db.Where("id = ?", postID).Where("user_id = ?", userID).Preload("User").Preload("Category").First(post).Error
 }
 
 func (r *PostRepository) Update(db *gorm.DB, post *entity.Post) error {
