@@ -21,16 +21,18 @@ type UserService struct {
 	UserRepository *repository.UserRepository
 	PostRepository *repository.PostRepository
 	FileStorage    *adapter.FileStorage
+	Captcha        *adapter.Captcha
 	Validator      *validator.Validate
 	Config         *viper.Viper
 }
 
-func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, postRepository *repository.PostRepository, fileStorage *adapter.FileStorage, validator *validator.Validate, config *viper.Viper) *UserService {
+func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, postRepository *repository.PostRepository, fileStorage *adapter.FileStorage, captcha *adapter.Captcha, validator *validator.Validate, config *viper.Viper) *UserService {
 	return &UserService{
 		DB:             db,
 		UserRepository: userRepository,
 		PostRepository: postRepository,
 		FileStorage:    fileStorage,
+		Captcha:        captcha,
 		Validator:      validator,
 		Config:         config,
 	}
@@ -84,6 +86,20 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 	if err := s.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.NewCustomError(401, "Email atau password salah")
+	}
+
+	captchaRequest := &model.CaptchaRequest{
+		TokenCaptcha: request.TokenCaptcha,
+		Secret:       s.Config.GetString("captcha.secret"),
+	}
+
+	ok, err := s.Captcha.Verify(captchaRequest)
+	if err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrInternalServerError
+	}
+	if !ok {
+		return nil, utility.ErrBadRequest
 	}
 
 	db := s.DB.WithContext(ctx)

@@ -543,7 +543,6 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServerError
 	}
-	fmt.Println(unusedFiles)
 
 	// hapus file yang tidak digunakan
 	if len(unusedFiles) > 0 {

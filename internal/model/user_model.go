@@ -20,9 +20,10 @@ type UserRegister struct {
 }
 
 type UserLogin struct {
-	Email       string `validate:"omitempty,email,exclusiveor=PhoneNumber" json:"email"`
-	PhoneNumber string `validate:"omitempty,exclusiveor=Email,max=20" json:"phoneNumber"`
-	Password    string `validate:"required,passwordformat,min=8,max=255" json:"password"`
+	Email        string `validate:"omitempty,email,exclusiveor=PhoneNumber" json:"email"`
+	PhoneNumber  string `validate:"omitempty,exclusiveor=Email,max=20" json:"phoneNumber"`
+	Password     string `validate:"required,passwordformat,min=8,max=255" json:"password"`
+	TokenCaptcha string `json:"tokenCaptcha" validate:"required,min=100"`
 }
 
 type UserUpdateProfile struct {

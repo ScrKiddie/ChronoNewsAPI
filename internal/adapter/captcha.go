@@ -1,0 +1,47 @@
+package adapter
+
+import (
+	"bytes"
+	"chronoverseapi/internal/model"
+	"encoding/json"
+	"log/slog"
+	"net/http"
+)
+
+type Captcha struct {
+	Client *http.Client
+}
+
+func NewCaptcha(client *http.Client) *Captcha {
+	return &Captcha{Client: client}
+}
+
+func (r *Captcha) Verify(request *model.CaptchaRequest) (bool, error) {
+
+	body, err := json.Marshal(request)
+	if err != nil {
+		return false, err
+	}
+
+	resp, err := r.Client.Post(
+		"https://challenges.cloudflare.com/turnstile/v0/siteverify",
+		"application/json",
+		bytes.NewBuffer(body),
+	)
+
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	var response model.CaptchaResponse
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		return false, err
+	}
+
+	if !response.Success {
+		slog.Info("captcha verification failed: " + string(body))
+	}
+	return response.Success, nil
+}

@@ -11,6 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
+	"net/http"
 )
 
 type BootstrapConfig struct {
@@ -18,6 +19,7 @@ type BootstrapConfig struct {
 	DB        *gorm.DB
 	Config    *viper.Viper
 	Validator *validator.Validate
+	Client    *http.Client
 }
 
 func Bootstrap(b *BootstrapConfig) {
@@ -29,9 +31,9 @@ func Bootstrap(b *BootstrapConfig) {
 
 	//adapter
 	fileStorage := adapter.NewFileStorage()
-
+	captcha := adapter.NewCaptcha(b.Client)
 	//service
-	userService := service.NewUserService(b.DB, userRepository, postRepository, fileStorage, b.Validator, b.Config)
+	userService := service.NewUserService(b.DB, userRepository, postRepository, fileStorage, captcha, b.Validator, b.Config)
 	categoryService := service.NewCategoryService(b.DB, categoryRepository, userRepository, postRepository, b.Validator)
 	postService := service.NewPostService(b.DB, postRepository, userRepository, fileRepository, categoryRepository, fileStorage, b.Validator, b.Config)
 

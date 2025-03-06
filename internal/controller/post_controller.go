@@ -4,7 +4,6 @@ import (
 	"chronoverseapi/internal/model"
 	"chronoverseapi/internal/service"
 	"chronoverseapi/internal/utility"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"log/slog"
 	"net/http"
@@ -78,8 +77,6 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	auth := r.Context().Value("auth").(*model.Auth)
-	fmt.Println(r.FormValue("categoryID"))
-	fmt.Println(r.FormValue("userID"))
 	categoryID, err := utility.ToInt32(r.FormValue("categoryID"))
 	if err != nil {
 		slog.Error(err.Error())

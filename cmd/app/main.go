@@ -12,7 +12,8 @@ func main() {
 	db := config.NewDatabase(viper)
 	chi := config.NewChi()
 	validator := config.NewValidator()
-	config.Bootstrap(&config.BootstrapConfig{App: chi, DB: db, Config: viper, Validator: validator})
+	client := config.NewClient()
+	config.Bootstrap(&config.BootstrapConfig{App: chi, DB: db, Config: viper, Validator: validator, Client: client})
 	slog.Info("server run on port " + viper.GetString("web.port"))
 	err := http.ListenAndServe("0.0.0.0:"+viper.GetString("web.port"), chi)
 	if err != nil {
