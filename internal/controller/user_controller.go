@@ -18,6 +18,18 @@ func NewUserController(userService *service.UserService) *UserController {
 	return &UserController{UserService: userService}
 }
 
+// Register handles user registration
+// @Summary Register a new user
+// @Description Register a new user with name, phone number, email, and password
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param user body model.UserRegister true "User registration data"
+// @Success 201 {object} utility.ResponseSuccess
+// @Failure 400 {object} utility.ResponseError
+// @Failure 409 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/user/register [post]
 func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 	request := new(model.UserRegister)
 
@@ -34,6 +46,18 @@ func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponse(w, http.StatusCreated, "User registered successfully")
 }
 
+// Login handles user login and returns a JWT token
+// @Summary User login
+// @Description User logs in with email/phone number and password, returning a JWT token
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param user body model.UserLogin true "User login data"
+// @Success 200 {object} utility.ResponseSuccess
+// @Failure 400 {object} utility.ResponseError
+// @Failure 401 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/user/login [post]
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	request := new(model.UserLogin)
 
@@ -51,6 +75,16 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponse(w, http.StatusOK, response.Token)
 }
 
+// Current retrieves the current logged-in user's profile
+// @Summary Get current user's profile
+// @Description Get the profile of the currently logged-in user
+// @Tags User
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} utility.ResponseSuccess{data=model.UserResponse}
+// @Failure 401 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/user/current [get]
 func (c *UserController) Current(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 	response, err := c.UserService.Current(r.Context(), auth)
@@ -61,6 +95,22 @@ func (c *UserController) Current(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponse(w, http.StatusOK, response)
 }
 
+// UpdateProfile updates the current user's profile
+// @Summary Update current user's profile
+// @Description Update the current user's name, phone number, email, and profile picture
+// @Tags User
+// @Accept multipart/form-data
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param name formData string true "User name"
+// @Param phoneNumber formData string true "Phone number"
+// @Param email formData string true "Email"
+// @Param profilePicture formData file false "Profile picture"
+// @Success 200 {object} utility.ResponseSuccess{data=model.UserResponse}
+// @Failure 400 {object} utility.ResponseError
+// @Failure 401 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/user/current/profile [patch]
 func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 	request := new(model.UserUpdateProfile)
@@ -76,6 +126,19 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponse(w, http.StatusOK, response)
 }
 
+// UpdatePassword updates the current user's password
+// @Summary Update current user's password
+// @Description Update the current user's password
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param password body model.UserUpdatePassword true "New password details"
+// @Success 201 {object} utility.ResponseSuccess
+// @Failure 400 {object} utility.ResponseError
+// @Failure 401 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/user/current/password [patch]
 func (c *UserController) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 	request := new(model.UserUpdatePassword)
@@ -91,6 +154,22 @@ func (c *UserController) UpdatePassword(w http.ResponseWriter, r *http.Request) 
 	utility.CreateSuccessResponse(w, http.StatusCreated, "Password updated successfully")
 }
 
+// Search searches for users based on query parameters
+// @Summary Search for users
+// @Description Search for users by name, role, phone number, and email
+// @Tags User
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param name query string false "Name"
+// @Param phoneNumber query string false "Phone number"
+// @Param email query string false "Email"
+// @Param role query string false "Role"
+// @Param page query int false "Page number"
+// @Param size query int false "Page size"
+// @Success 200 {object} utility.PaginationResponse{data=[]model.UserResponse,pagination=[]model.Pagination}
+// @Failure 401 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/user [get]
 func (c *UserController) Search(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 
@@ -124,6 +203,18 @@ func (c *UserController) Search(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Get retrieves a specific user by ID
+// @Summary Get user by ID
+// @Description Retrieve a specific user by their ID
+// @Tags User
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path int true "User ID"
+// @Success 200 {object} utility.ResponseSuccess{data=model.UserResponse}
+// @Failure 400 {object} utility.ResponseError
+// @Failure 401 {object} utility.ResponseError
+// @Failure 404 {object} utility.ResponseError
+// @Router /api/user/{id} [get]
 func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 
@@ -146,6 +237,24 @@ func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponse(w, http.StatusOK, response)
 }
 
+// Create creates a new user
+// @Summary Create a new user
+// @Description Create a new user with name, phone number, email, and role
+// @Tags User
+// @Accept multipart/form-data
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param name formData string true "User name"
+// @Param phoneNumber formData string true "Phone number"
+// @Param email formData string true "Email"
+// @Param profilePicture formData file false "Profile picture"
+// @Param password formData string true "Password"
+// @Param role formData string true "Role (admin, journalist)"
+// @Success 201 {object} utility.ResponseSuccess{data=model.UserResponse}
+// @Failure 400 {object} utility.ResponseError
+// @Failure 409 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/user [post]
 func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 
@@ -167,6 +276,26 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponse(w, http.StatusCreated, response)
 }
 
+// Update updates an existing user
+// @Summary Update user by ID
+// @Description Update an existing user's details
+// @Tags User
+// @Accept multipart/form-data
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path int true "User ID"
+// @Param name formData string true "User name"
+// @Param phoneNumber formData string true "Phone number"
+// @Param email formData string true "Email"
+// @Param profilePicture formData file false "Profile picture"
+// @Param password formData string false "Password"
+// @Param role formData string true "Role"
+// @Success 200 {object} utility.ResponseSuccess{data=model.UserResponse}
+// @Failure 400 {object} utility.ResponseError
+// @Failure 401 {object} utility.ResponseError
+// @Failure 404 {object} utility.ResponseError
+// @Failure 409 {object} utility.ResponseError
+// @Router /api/user/{id} [put]
 func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 
@@ -195,6 +324,19 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponse(w, http.StatusOK, response)
 }
 
+// Delete deletes an existing user
+// @Summary Delete user by ID
+// @Description Delete an existing user by their ID
+// @Tags User
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path int true "User ID"
+// @Success 200 {object} utility.ResponseSuccess
+// @Failure 400 {object} utility.ResponseError
+// @Failure 401 {object} utility.ResponseError
+// @Failure 404 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/user/{id} [delete]
 func (c *UserController) Delete(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 

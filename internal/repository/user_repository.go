@@ -36,10 +36,6 @@ func (u *UserRepository) FindPasswordByEmail(db *gorm.DB, entity *entity.User, e
 	return db.Where("email = ?", email).First(entity).Error
 }
 
-func (u *UserRepository) FindPasswordByPhoneNumber(db *gorm.DB, entity *entity.User, phoneNumber string) error {
-	return db.Where("phone_number = ?", phoneNumber).First(entity).Error
-}
-
 func (u *UserRepository) FindById(db *gorm.DB, entity *entity.User, id int32) error {
 	return db.Where("id = ?", id).First(entity).Error
 }

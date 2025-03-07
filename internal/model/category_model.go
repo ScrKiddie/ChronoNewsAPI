@@ -10,7 +10,7 @@ type CategoryCreate struct {
 }
 
 type CategoryUpdate struct {
-	ID   int32  `validate:"required,numeric" json:"id"`
+	ID   int32  `validate:"required,numeric" json:"id" swaggerignore:"true"`
 	Name string `validate:"required,min=3,max=100" json:"name"`
 }
 

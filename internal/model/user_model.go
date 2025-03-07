@@ -8,7 +8,6 @@ type UserResponse struct {
 	ProfilePicture string `json:"profilePicture,omitempty"`
 	PhoneNumber    string `json:"phoneNumber,omitempty"`
 	Email          string `json:"email,omitempty"`
-	Password       string `json:"password,omitempty"`
 	Role           string `json:"role,omitempty"`
 }
 
@@ -20,8 +19,7 @@ type UserRegister struct {
 }
 
 type UserLogin struct {
-	Email        string `validate:"omitempty,email,exclusiveor=PhoneNumber" json:"email"`
-	PhoneNumber  string `validate:"omitempty,exclusiveor=Email,max=20" json:"phoneNumber"`
+	Email        string `validate:"required,email,max=255" json:"email"`
 	Password     string `validate:"required,passwordformat,min=8,max=255" json:"password"`
 	TokenCaptcha string `json:"tokenCaptcha" validate:"required,min=100"`
 }

@@ -5,22 +5,36 @@ import (
 	"net/http"
 )
 
+type ResponseSuccess struct {
+	Data interface{} `json:"data"`
+}
+
+type ResponseError struct {
+	Error string `json:"error"`
+}
+
+type PaginationResponse struct {
+	Data       interface{} `json:"data"`
+	Pagination interface{} `json:"pagination"`
+}
+
 func CreateErrorResponse(w http.ResponseWriter, statusCode int, message string) {
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error": message,
-	})
+	errorResponse := ResponseError{Error: message}
+	json.NewEncoder(w).Encode(errorResponse)
 }
-func CreateSuccessResponse(w http.ResponseWriter, statusCode int, data any) {
+
+func CreateSuccessResponse(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": data,
-	})
+	successResponse := ResponseSuccess{Data: data}
+	json.NewEncoder(w).Encode(successResponse)
 }
-func CreateSuccessResponseWithPagination(w http.ResponseWriter, statusCode int, data any, pagination any) {
+
+func CreateSuccessResponseWithPagination(w http.ResponseWriter, statusCode int, data interface{}, pagination interface{}) {
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data":       data,
-		"pagination": pagination,
-	})
+	paginationResponse := PaginationResponse{
+		Data:       data,
+		Pagination: pagination,
+	}
+	json.NewEncoder(w).Encode(paginationResponse)
 }

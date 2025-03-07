@@ -54,7 +54,7 @@ func NewPostService(
 	}
 }
 
-func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[]model.PostResponse, *model.Pagination, error) {
+func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[]model.PostResponseWithPreload, *model.Pagination, error) {
 	db := s.DB.WithContext(ctx)
 
 	var posts []entity.Post
@@ -65,12 +65,12 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 	}
 
 	if len(posts) == 0 {
-		return &[]model.PostResponse{}, &model.Pagination{}, nil
+		return &[]model.PostResponseWithPreload{}, &model.Pagination{}, nil
 	}
 
-	var response []model.PostResponse
+	var response []model.PostResponseWithPreload
 	for _, post := range posts {
-		response = append(response, model.PostResponse{
+		response = append(response, model.PostResponseWithPreload{
 			ID:            post.ID,
 			Title:         post.Title,
 			Summary:       post.Summary,
@@ -78,8 +78,12 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 			LastUpdated:   post.LastUpdated,
 			Thumbnail:     post.Thumbnail,
 			User: &model.UserResponse{
-				ID:   post.User.ID,
-				Name: post.User.Name,
+				ID:             post.User.ID,
+				Name:           post.User.Name,
+				ProfilePicture: post.User.ProfilePicture,
+				PhoneNumber:    post.User.PhoneNumber,
+				Email:          post.User.Email,
+				Role:           post.User.Role,
 			},
 			Category: &model.CategoryResponse{
 				ID:   post.Category.ID,
@@ -98,7 +102,7 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 	return &response, &pagination, nil
 }
 
-func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.PostResponse, error) {
+func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.PostResponseWithPreload, error) {
 	if err := s.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrBadRequest
@@ -112,7 +116,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		return nil, utility.ErrNotFound
 	}
 
-	response := &model.PostResponse{
+	response := &model.PostResponseWithPreload{
 		ID:            post.ID,
 		Title:         post.Title,
 		Summary:       post.Summary,
@@ -123,6 +127,9 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 			ID:             post.User.ID,
 			Name:           post.User.Name,
 			ProfilePicture: post.User.ProfilePicture,
+			PhoneNumber:    post.User.PhoneNumber,
+			Email:          post.User.Email,
+			Role:           post.User.Role,
 		},
 		Category: &model.CategoryResponse{
 			ID:   post.Category.ID,

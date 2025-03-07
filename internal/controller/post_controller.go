@@ -17,6 +17,22 @@ func NewPostController(postService *service.PostService) *PostController {
 	return &PostController{PostService: postService}
 }
 
+// Search handles searching for posts
+// @Summary Search posts
+// @Description Search posts with various filtering options
+// @Tags Post
+// @Produce json
+// @Param page query int false "Page number" default(0)
+// @Param size query int false "Page size" default(5)
+// @Param userID query int false "User ID" default(0)
+// @Param title query string false "Title search query"
+// @Param userName query string false "User name search query"
+// @Param summary query string false "Summary search query"
+// @Param categoryName query string false "Category name search query"
+// @Success 200 {object} utility.PaginationResponse{data=[]model.PostResponseWithPreload,pagination=[]model.Pagination}
+// @Failure 400 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/post [get]
 func (c *PostController) Search(w http.ResponseWriter, r *http.Request) {
 	page, err := utility.ToInt64(r.URL.Query().Get("page"))
 	if err != nil {
@@ -49,6 +65,17 @@ func (c *PostController) Search(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponseWithPagination(w, http.StatusOK, posts, pagination)
 }
 
+// Get handles getting a specific post by ID
+// @Summary Get a post by ID
+// @Description Retrieve a specific post by its ID
+// @Tags Post
+// @Produce json
+// @Param id path int true "Post ID"
+// @Success 200 {object} utility.ResponseSuccess{data=model.PostResponseWithPreload}
+// @Failure 400 {object} utility.ResponseError
+// @Failure 404 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/post/{id} [get]
 func (c *PostController) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 
@@ -69,6 +96,23 @@ func (c *PostController) Get(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponse(w, http.StatusOK, post)
 }
 
+// Create handles creating a new post
+// @Summary Create a new post
+// @Description Create a new post with the given details
+// @Tags Post
+// @Accept multipart/form-data
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param title formData string true "Post Title"
+// @Param summary formData string true "Post Summary"
+// @Param content formData string true "Post Content"
+// @Param userID formData int32 false "User ID"
+// @Param categoryID formData int32 true "Category ID"
+// @Param thumbnail formData file false "Post Thumbnail"
+// @Success 201 {object} utility.ResponseSuccess{data=model.PostResponse}
+// @Failure 400 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/post [post]
 func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(1 * 1024 * 1024 * 1024)
 	if err != nil {
@@ -113,6 +157,25 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponse(w, http.StatusCreated, post)
 }
 
+// Update handles updating a specific post
+// @Summary Update an existing post
+// @Description Update an existing post's details
+// @Tags Post
+// @Accept multipart/form-data
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path int true "Post ID"
+// @Param title formData string true "Post Title"
+// @Param summary formData string true "Post Summary"
+// @Param content formData string true "Post Content"
+// @Param userID formData int32 false "User ID"
+// @Param categoryID formData int32 true "Category ID"
+// @Param thumbnail formData file false "Post Thumbnail"
+// @Success 200 {object} utility.ResponseSuccess{data=model.PostResponse}
+// @Failure 400 {object} utility.ResponseError
+// @Failure 404 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/post/{id} [put]
 func (c *PostController) Update(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(1 * 1024 * 1024 * 1024)
 	if err != nil {
@@ -166,6 +229,18 @@ func (c *PostController) Update(w http.ResponseWriter, r *http.Request) {
 	utility.CreateSuccessResponse(w, http.StatusOK, post)
 }
 
+// Delete handles deleting a specific post
+// @Summary Delete a post
+// @Description Delete a post by its ID
+// @Tags Post
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param id path int true "Post ID"
+// @Success 200 {object} utility.ResponseSuccess
+// @Failure 400 {object} utility.ResponseError
+// @Failure 404 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/post/{id} [delete]
 func (c *PostController) Delete(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))

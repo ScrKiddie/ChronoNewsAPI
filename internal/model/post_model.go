@@ -3,11 +3,21 @@ package model
 import "mime/multipart"
 
 type PostResponse struct {
+	ID            int32  `json:"id"`
+	CategoryID    int32  `json:"categoryID,omitempty"`
+	UserID        int32  `json:"userID,omitempty"`
+	Title         string `json:"title"`
+	Summary       string `json:"summary,omitempty"`
+	Content       string `json:"content,omitempty"`
+	PublishedDate int64  `json:"publishedDate"`
+	LastUpdated   int64  `json:"lastUpdated"`
+	Thumbnail     string `json:"thumbnail"`
+}
+
+type PostResponseWithPreload struct {
 	ID            int32             `json:"id"`
-	CategoryID    int32             `json:"categoryID,omitempty""`
 	Category      *CategoryResponse `json:"category,omitempty"`
 	User          *UserResponse     `json:"user,omitempty"`
-	UserID        int32             `json:"userID,omitempty"`
 	Title         string            `json:"title"`
 	Summary       string            `json:"summary,omitempty"`
 	Content       string            `json:"content,omitempty"`

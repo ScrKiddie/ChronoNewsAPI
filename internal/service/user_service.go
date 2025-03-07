@@ -106,16 +106,9 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 
 	user := new(entity.User)
 
-	if request.Email != "" {
-		if err := s.UserRepository.FindPasswordByEmail(db, user, request.Email); err != nil {
-			slog.Error(err.Error())
-			return nil, utility.NewCustomError(401, "Email atau password salah")
-		}
-	} else {
-		if err := s.UserRepository.FindPasswordByPhoneNumber(db, user, request.PhoneNumber); err != nil {
-			slog.Error(err.Error())
-			return nil, utility.ErrUnauthorized
-		}
+	if err := s.UserRepository.FindPasswordByEmail(db, user, request.Email); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.NewCustomError(401, "Email atau password salah")
 	}
 
 	if !utility.VerifyPassword(user.Password, request.Password) {
@@ -162,10 +155,12 @@ func (s *UserService) Current(ctx context.Context, request *model.Auth) (*model.
 	}
 
 	return &model.UserResponse{
+		ID:             user.ID,
 		Name:           user.Name,
 		ProfilePicture: user.ProfilePicture,
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
+		Role:           user.Role,
 	}, nil
 }
 
@@ -227,10 +222,12 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	}
 
 	return &model.UserResponse{
+		ID:             user.ID,
 		Name:           user.Name,
 		ProfilePicture: user.ProfilePicture,
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
+		Role:           user.Role,
 	}, nil
 }
 
@@ -415,6 +412,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 		ProfilePicture: user.ProfilePicture,
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
+		Role:           user.Role,
 	}, nil
 }
 
@@ -506,6 +504,7 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 		ProfilePicture: user.ProfilePicture,
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
+		Role:           user.Role,
 	}, nil
 }
 
