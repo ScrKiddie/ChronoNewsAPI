@@ -94,28 +94,6 @@ definitions:
     - password
     - tokenCaptcha
     type: object
-  model.UserRegister:
-    properties:
-      email:
-        maxLength: 255
-        type: string
-      name:
-        maxLength: 255
-        minLength: 3
-        type: string
-      password:
-        maxLength: 255
-        minLength: 8
-        type: string
-      phoneNumber:
-        maxLength: 20
-        type: string
-    required:
-    - email
-    - name
-    - password
-    - phoneNumber
-    type: object
   model.UserResponse:
     properties:
       email:
@@ -1090,40 +1068,6 @@ paths:
           schema:
             $ref: '#/definitions/utility.ResponseError'
       summary: User login
-      tags:
-      - User
-  /api/user/register:
-    post:
-      consumes:
-      - application/json
-      description: Register a new user with name, phone number, email, and password
-      parameters:
-      - description: User registration data
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/model.UserRegister'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/utility.ResponseSuccess'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utility.ResponseError'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/utility.ResponseError'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utility.ResponseError'
-      summary: Register a new user
       tags:
       - User
 swagger: "2.0"

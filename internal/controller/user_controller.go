@@ -18,34 +18,6 @@ func NewUserController(userService *service.UserService) *UserController {
 	return &UserController{UserService: userService}
 }
 
-// Register handles user registration
-// @Summary Register a new user
-// @Description Register a new user with name, phone number, email, and password
-// @Tags User
-// @Accept json
-// @Produce json
-// @Param user body model.UserRegister true "User registration data"
-// @Success 201 {object} utility.ResponseSuccess
-// @Failure 400 {object} utility.ResponseError
-// @Failure 409 {object} utility.ResponseError
-// @Failure 500 {object} utility.ResponseError
-// @Router /api/user/register [post]
-func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
-	request := new(model.UserRegister)
-
-	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
-		slog.Error(err.Error())
-		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
-		return
-	}
-
-	if err := c.UserService.Register(r.Context(), request); err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
-		return
-	}
-	utility.CreateSuccessResponse(w, http.StatusCreated, "User registered successfully")
-}
-
 // Login handles user login and returns a JWT token
 // @Summary User login
 // @Description User logs in with email/phone number and password, returning a JWT token

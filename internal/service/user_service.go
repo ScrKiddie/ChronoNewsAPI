@@ -2,7 +2,6 @@ package service
 
 import (
 	"chronoverseapi/internal/adapter"
-	"chronoverseapi/internal/constant"
 	"chronoverseapi/internal/entity"
 	"chronoverseapi/internal/model"
 	"chronoverseapi/internal/repository"
@@ -36,50 +35,6 @@ func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, post
 		Validator:      validator,
 		Config:         config,
 	}
-}
-
-func (s *UserService) Register(ctx context.Context, request *model.UserRegister) error {
-	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
-		return utility.ErrBadRequest
-	}
-
-	tx := s.DB.WithContext(ctx).Begin()
-	defer tx.Rollback()
-
-	if unique := s.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 {
-		return utility.NewCustomError(http.StatusConflict, "Email already exists")
-	}
-
-	if unique := s.UserRepository.FindIDByPhoneNumber(tx, request.PhoneNumber); unique != 0 {
-		return utility.NewCustomError(http.StatusConflict, "Phone number already exist")
-	}
-
-	hashedPassword, err := utility.HashPassword(request.Password)
-	if err != nil {
-		slog.Error(err.Error())
-		return utility.ErrInternalServerError
-	}
-
-	user := &entity.User{
-		Name:        request.Name,
-		PhoneNumber: request.PhoneNumber,
-		Email:       request.Email,
-		Password:    hashedPassword,
-		Role:        constant.User,
-	}
-
-	if err := s.UserRepository.Create(tx, user); err != nil {
-		slog.Error(err.Error())
-		return utility.ErrInternalServerError
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
-		return utility.ErrInternalServerError
-	}
-
-	return nil
 }
 
 func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*model.Auth, error) {

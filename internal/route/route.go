@@ -18,7 +18,6 @@ type Route struct {
 func (r *Route) Setup() {
 	r.App.Route("/api", func(c chi.Router) {
 		c.Group(func(guest chi.Router) {
-			guest.Post("/user/register", r.UserController.Register)
 			guest.Post("/user/login", r.UserController.Login)
 			guest.Get("/post", r.PostController.Search)
 			guest.Get("/post/{id}", r.PostController.Get)

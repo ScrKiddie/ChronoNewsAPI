@@ -1219,58 +1219,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/user/register": {
-            "post": {
-                "description": "Register a new user with name, phone number, email, and password",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Register a new user",
-                "parameters": [
-                    {
-                        "description": "User registration data",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.UserRegister"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/utility.ResponseSuccess"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/utility.ResponseError"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/utility.ResponseError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/utility.ResponseError"
-                        }
-                    }
-                }
-            }
-        },
         "/api/user/{id}": {
             "get": {
                 "description": "Retrieve a specific user by their ID",
@@ -1648,35 +1596,6 @@ const docTemplate = `{
                 "tokenCaptcha": {
                     "type": "string",
                     "minLength": 100
-                }
-            }
-        },
-        "model.UserRegister": {
-            "type": "object",
-            "required": [
-                "email",
-                "name",
-                "password",
-                "phoneNumber"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "minLength": 3
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "minLength": 8
-                },
-                "phoneNumber": {
-                    "type": "string",
-                    "maxLength": 20
                 }
             }
         },

@@ -7,7 +7,6 @@ import (
 	"chronoverseapi/internal/repository"
 	"chronoverseapi/internal/utility"
 	"context"
-	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
@@ -122,6 +121,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		Summary:       post.Summary,
 		Content:       post.Content,
 		PublishedDate: post.PublishedDate,
+		LastUpdated:   post.LastUpdated,
 		Thumbnail:     post.Thumbnail,
 		User: &model.UserResponse{
 			ID:             post.User.ID,
@@ -219,8 +219,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		return nil, err
 	default:
 	}
-	decodingDuration := time.Since(startTime)
-	fmt.Printf("Proses Decoding dan Validasi File selesai dalam %s\n", decodingDuration)
+	utility.LogResourceUsage("proses validasi file", startTime)
 
 	startTime = time.Now() // parallel untuk kompresi file dan write file ke temp dir
 	if len(fileDatas) > 0 {
@@ -258,8 +257,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		default:
 		}
 	}
-	compressionDuration := time.Since(startTime)
-	fmt.Printf("Proses Kompresi File ke Temp Dir selesai dalam %s\n", compressionDuration)
+	utility.LogResourceUsage("proses kompresi file", startTime)
 
 	// defer agar memastikan tempfile dihapus sebelum return
 	defer func() {
@@ -355,8 +353,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		default:
 		}
 	}
-	copyDuration := time.Since(startTime)
-	fmt.Printf("Proses Copy File Temp ke Dir utama selesai dalam %s\n", copyDuration)
+	utility.LogResourceUsage("proses penyimpanan file", startTime)
 
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
