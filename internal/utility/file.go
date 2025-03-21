@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/chai2010/webp"
 	"github.com/google/uuid"
+	"golang.org/x/image/draw"
 	"image"
 	"mime/multipart"
 	"os"
@@ -15,7 +16,9 @@ import (
 	"strings"
 )
 
-const maxSize = 500 * 1024 // 500KB
+const maxSize = 500 * 1024
+const maxWidth = 1980
+const maxHeight = 1980
 
 func CreateFileName(file *multipart.FileHeader) string {
 	return uuid.New().String() + filepath.Ext(file.Filename)
@@ -41,30 +44,55 @@ func Base64ToFile(base64File string) ([]byte, string, error) {
 	}
 
 	fileName := uuid.New().String() + ".webp"
-
 	return decodedFile, fileName, nil
 }
 
+func ResizeImage(img image.Image) image.Image {
+	bounds := img.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+
+	if width <= maxWidth && height <= maxHeight {
+		return img
+	}
+
+	ratio := float64(maxWidth) / float64(width)
+	if float64(height)*ratio > float64(maxHeight) {
+		ratio = float64(maxHeight) / float64(height)
+	}
+
+	newWidth := int(float64(width) * ratio)
+	newHeight := int(float64(height) * ratio)
+	dst := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), img, bounds, draw.Over, nil)
+
+	return dst
+}
+
 func CompressImage(fileData model.FileData, tempDir string) (string, error) {
-	img, _, err := image.Decode(bytes.NewReader(fileData.File))
+	img, format, err := image.Decode(bytes.NewReader(fileData.File))
 	if err != nil {
 		return "", fmt.Errorf("gagal mendekode gambar: %v", err)
 	}
 
-	outputPath := filepath.Join(tempDir, fileData.Name)
+	if format != "jpeg" && format != "png" {
+		return "", errors.New("format gambar tidak didukung, hanya JPEG dan PNG")
+	}
 
+	img = ResizeImage(img)
+
+	outputPath := filepath.Join(tempDir, fileData.Name)
 	tempFile, err := os.Create(outputPath)
 	if err != nil {
 		return "", fmt.Errorf("gagal membuat file sementara: %v", err)
 	}
 	defer tempFile.Close()
 
-	quality := 90
+	qualityLevels := []float32{90, 70, 40, 20, 10, 5, 0}
 	var imgBuffer bytes.Buffer
 
-	for quality >= 10 {
+	for _, quality := range qualityLevels {
 		imgBuffer.Reset()
-		err = webp.Encode(&imgBuffer, img, &webp.Options{Quality: float32(quality)})
+		err = webp.Encode(&imgBuffer, img, &webp.Options{Quality: quality})
 		if err != nil {
 			return "", fmt.Errorf("gagal mengompresi gambar: %v", err)
 		}
@@ -75,7 +103,6 @@ func CompressImage(fileData model.FileData, tempDir string) (string, error) {
 			}
 			return filepath.Base(tempFile.Name()), nil
 		}
-		quality -= 10
 	}
 
 	_, err = tempFile.Write(imgBuffer.Bytes())

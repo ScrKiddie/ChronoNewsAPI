@@ -140,6 +140,152 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 	return response, nil
 }
 
+//func (s *PostService) CreateSequence(ctx context.Context, request *model.PostCreate, auth *model.Auth) (*model.PostResponse, error) {
+//	tx := s.DB.WithContext(ctx).Begin()
+//	defer tx.Rollback()
+//
+//	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
+//		request.UserID = auth.ID
+//	}
+//	if request.UserID == 0 {
+//		request.UserID = auth.ID
+//	}
+//
+//	if err := s.Validator.Struct(request); err != nil {
+//		slog.Error(err.Error())
+//		return nil, utility.ErrBadRequest
+//	}
+//
+//	if err := s.UserRepository.FindById(tx, &entity.User{}, request.UserID); err != nil {
+//		slog.Error(err.Error())
+//		return nil, utility.ErrNotFound
+//	}
+//
+//	if err := s.CategoryRepository.FindById(tx, &entity.Category{}, request.CategoryID); err != nil {
+//		slog.Error(err.Error())
+//		return nil, utility.ErrNotFound
+//	}
+//
+//	doc, err := goquery.NewDocumentFromReader(strings.NewReader(request.Content))
+//	if err != nil {
+//		slog.Error(err.Error())
+//		return nil, utility.ErrInternalServerError
+//	}
+//
+//	var fileDatas []model.FileData
+//	var fileNames []string
+//
+//	startTime := time.Now()
+//	doc.Find("img").Each(func(i int, g *goquery.Selection) {
+//		src, exists := g.Attr("src")
+//		if exists && strings.HasPrefix(src, "data:image/") {
+//			file, name, err := utility.Base64ToFile(src)
+//			if err != nil {
+//				slog.Error(err.Error())
+//				return
+//			}
+//			fileDatas = append(fileDatas, model.FileData{File: file, Name: name})
+//			g.SetAttr("src", name)
+//		}
+//	})
+//	utility.LogResourceUsage("Proses Validasi File", startTime)
+//
+//	startTime = time.Now()
+//	for _, file := range fileDatas {
+//		name, err := utility.CompressImage(file, os.TempDir())
+//		if err != nil {
+//			slog.Error(err.Error())
+//			return nil, utility.ErrInternalServerError
+//		}
+//		fileNames = append(fileNames, name)
+//	}
+//	utility.LogResourceUsage("Proses Kompresi File", startTime)
+//
+//	defer func() {
+//		for _, fileName := range fileNames {
+//			if err := s.FileStorage.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
+//				slog.Error(err.Error())
+//			}
+//		}
+//	}()
+//
+//	newContent, err := doc.Html()
+//	if err != nil {
+//		slog.Error(err.Error())
+//		return nil, utility.ErrInternalServerError
+//	}
+//	request.Content = newContent
+//
+//	post := &entity.Post{
+//		Title:         request.Title,
+//		Summary:       request.Summary,
+//		Content:       request.Content,
+//		PublishedDate: time.Now().Unix(),
+//		UserID:        request.UserID,
+//		CategoryID:    request.CategoryID,
+//	}
+//
+//	if request.Thumbnail != nil {
+//		post.Thumbnail = utility.CreateFileName(request.Thumbnail)
+//	}
+//
+//	if err := s.PostRepository.Create(tx, post); err != nil {
+//		slog.Error(err.Error())
+//		return nil, utility.ErrInternalServerError
+//	}
+//
+//	if len(fileNames) > 0 {
+//		var fileEntities []entity.File
+//
+//		for _, fileName := range fileNames {
+//			fileEntities = append(fileEntities, entity.File{
+//				PostID: post.ID,
+//				Name:   fileName,
+//			})
+//		}
+//
+//		if err := tx.Create(&fileEntities).Error; err != nil {
+//			slog.Error(err.Error())
+//			return nil, utility.ErrInternalServerError
+//		}
+//	}
+//
+//	if request.Thumbnail != nil {
+//		if err := s.FileStorage.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
+//			slog.Error(err.Error())
+//			return nil, utility.ErrInternalServerError
+//		}
+//	}
+//
+//	startTime = time.Now()
+//	for _, fileName := range fileNames {
+//		if err := s.FileStorage.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
+//			slog.Error(err.Error())
+//			return nil, utility.ErrInternalServerError
+//		}
+//	}
+//	utility.LogResourceUsage("Proses Penyimpanan File", startTime)
+//
+//	if err := tx.Commit().Error; err != nil {
+//		slog.Error(err.Error())
+//		return nil, utility.ErrInternalServerError
+//	}
+//
+//	response := &model.PostResponse{
+//		ID:            post.ID,
+//		CategoryID:    post.CategoryID,
+//		UserID:        post.UserID,
+//		Title:         post.Title,
+//		Summary:       post.Summary,
+//		Content:       post.Content,
+//		PublishedDate: post.PublishedDate,
+//		LastUpdated:   post.LastUpdated,
+//		Thumbnail:     post.Thumbnail,
+//	}
+//
+//	return response, nil
+//}
+
 func (s *PostService) Create(ctx context.Context, request *model.PostCreate, auth *model.Auth) (*model.PostResponse, error) {
 	tx := s.DB.WithContext(ctx).Begin()
 	defer tx.Rollback()
