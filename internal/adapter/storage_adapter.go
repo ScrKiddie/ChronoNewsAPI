@@ -9,14 +9,14 @@ import (
 	"path/filepath"
 )
 
-type FileStorage struct {
+type StorageAdapter struct {
 }
 
-func NewFileStorage() *FileStorage {
-	return &FileStorage{}
+func NewStorageAdapter() *StorageAdapter {
+	return &StorageAdapter{}
 }
 
-func (f *FileStorage) Store(file *multipart.FileHeader, path string) error {
+func (f *StorageAdapter) Store(file *multipart.FileHeader, path string) error {
 	fileOpened, err := file.Open()
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (f *FileStorage) Store(file *multipart.FileHeader, path string) error {
 	return nil
 }
 
-func (f *FileStorage) Delete(path string) error {
+func (f *StorageAdapter) Delete(path string) error {
 	err := os.Remove(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -50,7 +50,7 @@ func (f *FileStorage) Delete(path string) error {
 	return nil
 }
 
-func (f *FileStorage) Copy(fileName, tempDir, destDir string) error {
+func (f *StorageAdapter) Copy(fileName, tempDir, destDir string) error {
 	tempPath := filepath.Join(tempDir, fileName)
 	destPath := filepath.Join(destDir, fileName)
 

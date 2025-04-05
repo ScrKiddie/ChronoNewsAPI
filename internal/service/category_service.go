@@ -53,12 +53,12 @@ func (s *CategoryService) Create(ctx context.Context, request *model.CategoryCre
 
 	if err := s.CategoryRepository.Create(tx, category); err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	return &model.CategoryResponse{
@@ -95,12 +95,12 @@ func (s *CategoryService) Update(ctx context.Context, request *model.CategoryUpd
 
 	if err := s.CategoryRepository.Update(tx, category); err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	return &model.CategoryResponse{
@@ -125,7 +125,7 @@ func (s *CategoryService) Delete(ctx context.Context, request *model.CategoryDel
 	ok, err := s.PostRepository.ExistsByCategoryID(tx, request.ID)
 	if err != nil {
 		slog.Error(err.Error())
-		return utility.ErrInternalServerError
+		return utility.ErrInternalServer
 	} else if ok {
 		return utility.NewCustomError(http.StatusConflict, "Kategori digunakan pada berita")
 	}
@@ -138,12 +138,12 @@ func (s *CategoryService) Delete(ctx context.Context, request *model.CategoryDel
 
 	if err := s.CategoryRepository.Delete(tx, category); err != nil {
 		slog.Error(err.Error())
-		return utility.ErrInternalServerError
+		return utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
-		return utility.ErrInternalServerError
+		return utility.ErrInternalServer
 	}
 
 	return nil
@@ -180,7 +180,7 @@ func (s *CategoryService) List(ctx context.Context) (*[]model.CategoryResponse, 
 	var categories []entity.Category
 	if err := s.CategoryRepository.FindAll(db, &categories); err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	if len(categories) == 0 {

@@ -9,7 +9,7 @@ type Post struct {
 	Title         string   `gorm:"column:title;type:varchar(255);not null"`
 	Thumbnail     string   `gorm:"column:thumbnail;type:varchar(100);"`
 	Summary       string   `gorm:"column:summary;type:varchar(1000);not null"`
-	Content       string   `gorm:"column:content;type:text;not null"`
+	Content       string   `gorm:"column:content;type:text"`
 	PublishedDate int64    `gorm:"column:published_date;type:bigint;not null"`
 	LastUpdated   int64    `gorm:"column:last_updated;type:bigint;not null"`
 }

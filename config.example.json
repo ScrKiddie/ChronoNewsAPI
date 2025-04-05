@@ -8,8 +8,8 @@
     "cors": {
       "origins": [
         "*",
-        "http://example.com",
-        "http://anotherdomain.com"
+        "https://example.com",
+        "https://anotherdomain.com"
       ]
     }
   },
@@ -26,5 +26,23 @@
   "storage": {
     "profile": "YOUR_STORAGE_PATH",
     "post": "YOUR_STORAGE_PATH"
+  },
+  "reset": {
+    "url": "https://example.com/reset",
+    "query": "code",
+    "request": {
+      "url": "https://example.com/forgot"
+    },
+    "exp": 2
+  },
+  "smtp": {
+    "host": "smtp.example.com",
+    "port": 587,
+    "username": "your_email@example.com",
+    "password": "your_email_password",
+    "from": {
+      "name": "YOUR_NAME",
+      "email": "no-reply@example.com"
+    }
   }
 }

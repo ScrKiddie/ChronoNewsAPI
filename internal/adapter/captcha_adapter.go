@@ -8,15 +8,15 @@ import (
 	"net/http"
 )
 
-type Captcha struct {
+type CaptchaAdapter struct {
 	Client *http.Client
 }
 
-func NewCaptcha(client *http.Client) *Captcha {
-	return &Captcha{Client: client}
+func NewCaptchaAdapter(client *http.Client) *CaptchaAdapter {
+	return &CaptchaAdapter{Client: client}
 }
 
-func (r *Captcha) Verify(request *model.CaptchaRequest) (bool, error) {
+func (r *CaptchaAdapter) Verify(request *model.CaptchaRequest) (bool, error) {
 
 	body, err := json.Marshal(request)
 	if err != nil {

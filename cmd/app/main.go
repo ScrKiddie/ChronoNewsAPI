@@ -5,11 +5,9 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"runtime"
 )
 
 func main() {
-	runtime.GOMAXPROCS(4)
 	viper := config.NewViper()
 	db := config.NewDatabase(viper)
 	chi := config.NewChi(viper)

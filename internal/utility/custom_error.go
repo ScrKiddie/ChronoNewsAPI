@@ -22,7 +22,7 @@ func (e *CustomError) Error() string {
 }
 
 var (
-	ErrInternalServerError = &CustomError{
+	ErrInternalServer = &CustomError{
 		Code:    http.StatusInternalServerError,
 		Message: "Internal server error",
 	}

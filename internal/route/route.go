@@ -13,6 +13,7 @@ type Route struct {
 	UserController     *controller.UserController
 	CategoryController *controller.CategoryController
 	PostController     *controller.PostController
+	ResetController    *controller.ResetController
 }
 
 func (r *Route) Setup() {
@@ -22,6 +23,7 @@ func (r *Route) Setup() {
 			guest.Get("/post", r.PostController.Search)
 			guest.Get("/post/{id}", r.PostController.Get)
 			guest.Get("/category", r.CategoryController.List)
+			guest.Post("/reset/request", r.ResetController.RequestResetEmail)
 		})
 
 		c.Group(func(auth chi.Router) {

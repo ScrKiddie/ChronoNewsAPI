@@ -47,9 +47,9 @@ func Image(fl validator.FieldLevel) bool {
 
 	allowedExtensions := []string{".png", ".jpg", ".jpeg"}
 	allowedContentTypes := []string{"image/png", "image/jpeg"}
-	var maxSize int64 = 1024 * 1024
+	var maxSize int64 = 2 * 1024 * 1024
 
-	defaultMaxWidth, defaultMaxHeight := 320, 320
+	defaultMaxWidth, defaultMaxHeight := 800, 800
 
 	params := fl.Param()
 	maxWidth, maxHeight := defaultMaxWidth, defaultMaxHeight

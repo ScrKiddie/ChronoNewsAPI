@@ -43,7 +43,7 @@ type PostSearch struct {
 type PostCreate struct {
 	Title      string                `validate:"required,max=255"`
 	Summary    string                `validate:"required,max=1000"`
-	Content    string                `validate:"required"`
+	Content    string                `validate:"omitempty"`
 	UserID     int32                 `validate:"omitempty,required"`
 	CategoryID int32                 `validate:"required"`
 	Thumbnail  *multipart.FileHeader `validate:"omitempty,image=1200_675"`
@@ -53,7 +53,7 @@ type PostUpdate struct {
 	ID         int32                 `validate:"required"`
 	Title      string                `validate:"required,max=255"`
 	Summary    string                `validate:"required,max=1000"`
-	Content    string                `validate:"required"`
+	Content    string                `validate:"omitempty"`
 	UserID     int32                 `validate:"omitempty,required"`
 	CategoryID int32                 `validate:"required"`
 	Thumbnail  *multipart.FileHeader `validate:"omitempty,image=1200_675"`

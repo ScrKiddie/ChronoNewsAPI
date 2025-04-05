@@ -31,16 +31,16 @@ func Base64ToFile(base64File string) ([]byte, string, error) {
 
 	decodedFile, err := base64.StdEncoding.DecodeString(base64File)
 	if err != nil {
-		return nil, "", errors.New("gagal mendekode base64")
+		return nil, "", fmt.Errorf("failed to decode base64: %v", err)
 	}
 
 	imgCfg, format, err := image.DecodeConfig(bytes.NewReader(decodedFile))
 	if err != nil || imgCfg.Width == 0 || imgCfg.Height == 0 {
-		return nil, "", errors.New("file bukan gambar yang valid")
+		return nil, "", errors.New("file is not a valid image")
 	}
 
 	if format != "jpeg" && format != "png" {
-		return nil, "", fmt.Errorf("format gambar tidak didukung, hanya JPEG dan PNG yang diizinkan")
+		return nil, "", fmt.Errorf("unsupported image format only JPEG and PNG are allowed")
 	}
 
 	fileName := uuid.New().String() + ".webp"
@@ -69,13 +69,9 @@ func ResizeImage(img image.Image) image.Image {
 }
 
 func CompressImage(fileData model.FileData, tempDir string) (string, error) {
-	img, format, err := image.Decode(bytes.NewReader(fileData.File))
+	img, _, err := image.Decode(bytes.NewReader(fileData.File))
 	if err != nil {
-		return "", fmt.Errorf("gagal mendekode gambar: %v", err)
-	}
-
-	if format != "jpeg" && format != "png" {
-		return "", errors.New("format gambar tidak didukung, hanya JPEG dan PNG")
+		return "", fmt.Errorf("failed to decode image: %v", err)
 	}
 
 	img = ResizeImage(img)
@@ -83,7 +79,7 @@ func CompressImage(fileData model.FileData, tempDir string) (string, error) {
 	outputPath := filepath.Join(tempDir, fileData.Name)
 	tempFile, err := os.Create(outputPath)
 	if err != nil {
-		return "", fmt.Errorf("gagal membuat file sementara: %v", err)
+		return "", fmt.Errorf("failed to create temporary file: %v", err)
 	}
 	defer tempFile.Close()
 
@@ -94,12 +90,12 @@ func CompressImage(fileData model.FileData, tempDir string) (string, error) {
 		imgBuffer.Reset()
 		err = webp.Encode(&imgBuffer, img, &webp.Options{Quality: quality})
 		if err != nil {
-			return "", fmt.Errorf("gagal mengompresi gambar: %v", err)
+			return "", fmt.Errorf("failed to compress image: %v", err)
 		}
 		if imgBuffer.Len() < maxSize {
 			_, err = tempFile.Write(imgBuffer.Bytes())
 			if err != nil {
-				return "", fmt.Errorf("gagal menyimpan file WebP: %v", err)
+				return "", fmt.Errorf("failed to save WebP file: %v", err)
 			}
 			return filepath.Base(tempFile.Name()), nil
 		}
@@ -107,7 +103,7 @@ func CompressImage(fileData model.FileData, tempDir string) (string, error) {
 
 	_, err = tempFile.Write(imgBuffer.Bytes())
 	if err != nil {
-		return "", fmt.Errorf("gagal menyimpan file WebP: %v", err)
+		return "", fmt.Errorf("failed to save WebP file: %v", err)
 	}
 
 	return filepath.Base(tempFile.Name()), nil

@@ -28,23 +28,28 @@ func Bootstrap(b *BootstrapConfig) {
 	categoryRepository := repository.NewCategoryRepository()
 	fileRepository := repository.NewFileRepository()
 	postRepository := repository.NewPostRepository()
+	resetRepository := repository.NewResetRepository()
 
 	//adapter
-	fileStorage := adapter.NewFileStorage()
-	captcha := adapter.NewCaptcha(b.Client)
+	fileStorage := adapter.NewStorageAdapter()
+	captcha := adapter.NewCaptchaAdapter(b.Client)
+	emailAdapter := adapter.NewEmailAdapter()
+
 	//service
 	userService := service.NewUserService(b.DB, userRepository, postRepository, fileStorage, captcha, b.Validator, b.Config)
 	categoryService := service.NewCategoryService(b.DB, categoryRepository, userRepository, postRepository, b.Validator)
 	postService := service.NewPostService(b.DB, postRepository, userRepository, fileRepository, categoryRepository, fileStorage, b.Validator, b.Config)
+	resetService := service.NewResetService(b.DB, resetRepository, userRepository, emailAdapter, b.Validator, b.Config)
 
 	//controller
 	userController := controller.NewUserController(userService)
 	categoryController := controller.NewCategoryController(categoryService)
 	postController := controller.NewPostController(postService)
+	resetController := controller.NewResetController(resetService)
 
 	//middleware
 	userMiddleware := middleware.NewUserMiddleware(userService)
 
-	router := route.Route{App: b.App, UserController: userController, UserMiddleware: userMiddleware, CategoryController: categoryController, PostController: postController}
+	router := route.Route{App: b.App, UserController: userController, UserMiddleware: userMiddleware, CategoryController: categoryController, PostController: postController, ResetController: resetController}
 	router.Setup()
 }

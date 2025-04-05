@@ -26,7 +26,7 @@ type PostService struct {
 	UserRepository     *repository.UserRepository
 	FileRepository     *repository.FileRepository
 	CategoryRepository *repository.CategoryRepository
-	FileStorage        *adapter.FileStorage
+	FileStorage        *adapter.StorageAdapter
 	Validator          *validator.Validate
 	Config             *viper.Viper
 }
@@ -37,7 +37,7 @@ func NewPostService(
 	userRepository *repository.UserRepository,
 	fileRepository *repository.FileRepository,
 	categoryRepository *repository.CategoryRepository,
-	fileStorage *adapter.FileStorage,
+	fileStorage *adapter.StorageAdapter,
 	validator *validator.Validate,
 	config *viper.Viper,
 ) *PostService {
@@ -60,7 +60,7 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 	total, err := s.PostRepository.Search(db, request, &posts)
 	if err != nil {
 		slog.Error(err.Error())
-		return nil, nil, utility.ErrInternalServerError
+		return nil, nil, utility.ErrInternalServer
 	}
 
 	if len(posts) == 0 {
@@ -169,7 +169,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 //	doc, err := goquery.NewDocumentFromReader(strings.NewReader(request.Content))
 //	if err != nil {
 //		slog.Error(err.Error())
-//		return nil, utility.ErrInternalServerError
+//		return nil, utility.ErrInternalServer
 //	}
 //
 //	var fileDatas []model.FileData
@@ -195,7 +195,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 //		name, err := utility.CompressImage(file, os.TempDir())
 //		if err != nil {
 //			slog.Error(err.Error())
-//			return nil, utility.ErrInternalServerError
+//			return nil, utility.ErrInternalServer
 //		}
 //		fileNames = append(fileNames, name)
 //	}
@@ -203,7 +203,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 //
 //	defer func() {
 //		for _, fileName := range fileNames {
-//			if err := s.FileStorage.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
+//			if err := s.StorageAdapter.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
 //				slog.Error(err.Error())
 //			}
 //		}
@@ -212,7 +212,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 //	newContent, err := doc.Html()
 //	if err != nil {
 //		slog.Error(err.Error())
-//		return nil, utility.ErrInternalServerError
+//		return nil, utility.ErrInternalServer
 //	}
 //	request.Content = newContent
 //
@@ -231,7 +231,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 //
 //	if err := s.PostRepository.Create(tx, post); err != nil {
 //		slog.Error(err.Error())
-//		return nil, utility.ErrInternalServerError
+//		return nil, utility.ErrInternalServer
 //	}
 //
 //	if len(fileNames) > 0 {
@@ -246,29 +246,29 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 //
 //		if err := tx.Create(&fileEntities).Error; err != nil {
 //			slog.Error(err.Error())
-//			return nil, utility.ErrInternalServerError
+//			return nil, utility.ErrInternalServer
 //		}
 //	}
 //
 //	if request.Thumbnail != nil {
-//		if err := s.FileStorage.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
+//		if err := s.StorageAdapter.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
 //			slog.Error(err.Error())
-//			return nil, utility.ErrInternalServerError
+//			return nil, utility.ErrInternalServer
 //		}
 //	}
 //
 //	startTime = time.Now()
 //	for _, fileName := range fileNames {
-//		if err := s.FileStorage.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
+//		if err := s.StorageAdapter.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
 //			slog.Error(err.Error())
-//			return nil, utility.ErrInternalServerError
+//			return nil, utility.ErrInternalServer
 //		}
 //	}
 //	utility.LogResourceUsage("Proses Penyimpanan File", startTime)
 //
 //	if err := tx.Commit().Error; err != nil {
 //		slog.Error(err.Error())
-//		return nil, utility.ErrInternalServerError
+//		return nil, utility.ErrInternalServer
 //	}
 //
 //	response := &model.PostResponse{
@@ -315,7 +315,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(request.Content))
 	if err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	var fileDatas []model.FileData
@@ -382,7 +382,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 					if err != nil {
 						slog.Error(err.Error())
 						once.Do(func() {
-							errChan <- utility.ErrInternalServerError
+							errChan <- utility.ErrInternalServer
 							cancel()
 						})
 						return
@@ -423,7 +423,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	newContent, err := doc.Html()
 	if err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 	request.Content = newContent
 
@@ -442,7 +442,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 
 	if err := s.PostRepository.Create(tx, post); err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	if len(fileNames) > 0 {
@@ -457,14 +457,14 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 
 		if err := tx.Create(&fileEntities).Error; err != nil {
 			slog.Error(err.Error())
-			return nil, utility.ErrInternalServerError
+			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if request.Thumbnail != nil {
 		if err := s.FileStorage.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
 			slog.Error(err.Error())
-			return nil, utility.ErrInternalServerError
+			return nil, utility.ErrInternalServer
 		}
 	}
 
@@ -483,7 +483,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 					if err := s.FileStorage.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
 						slog.Error(err.Error())
 						once.Do(func() {
-							errChan <- utility.ErrInternalServerError
+							errChan <- utility.ErrInternalServer
 							cancel()
 						})
 					}
@@ -503,7 +503,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	response := &model.PostResponse{
@@ -552,7 +552,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(request.Content))
 	if err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	var newFileDatas []model.FileData
@@ -622,7 +622,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 					if err != nil {
 						slog.Error(err.Error())
 						once.Do(func() {
-							errChan <- utility.ErrInternalServerError
+							errChan <- utility.ErrInternalServer
 							cancel()
 						})
 						return
@@ -660,7 +660,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	newContent, err := doc.Html()
 	if err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 	request.Content = newContent
 
@@ -684,14 +684,14 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 
 	if err := s.PostRepository.Update(tx, post); err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	// ambil daftar file yang tidak lagi digunakan
 	unusedFiles, err := s.FileRepository.FindUnusedFile(tx, post.ID, append(oldFileNames, newFileNames...))
 	if err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	// hapus file yang tidak digunakan
@@ -704,7 +704,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		err = s.FileRepository.DeleteUnusedFile(tx, post.ID, unusedFileNames)
 		if err != nil {
 			slog.Error(err.Error())
-			return nil, utility.ErrInternalServerError
+			return nil, utility.ErrInternalServer
 		}
 
 		// hapus file dari sistem penyimpanan
@@ -720,7 +720,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 					if err := s.FileStorage.Delete(s.Config.GetString("storage.post") + file.Name); err != nil {
 						slog.Error(err.Error())
 						once.Do(func() {
-							errChan <- utility.ErrInternalServerError
+							errChan <- utility.ErrInternalServer
 							cancel()
 						})
 					}
@@ -749,7 +749,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 
 		if err := tx.Create(&fileEntities).Error; err != nil {
 			slog.Error(err.Error())
-			return nil, utility.ErrInternalServerError
+			return nil, utility.ErrInternalServer
 		}
 	}
 
@@ -763,7 +763,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	if request.Thumbnail != nil {
 		if err := s.FileStorage.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
 			slog.Error(err.Error())
-			return nil, utility.ErrInternalServerError
+			return nil, utility.ErrInternalServer
 		}
 	}
 
@@ -781,7 +781,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 					if err := s.FileStorage.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
 						slog.Error(err.Error())
 						once.Do(func() {
-							errChan <- utility.ErrInternalServerError
+							errChan <- utility.ErrInternalServer
 							cancel()
 						})
 					}
@@ -800,7 +800,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
-		return nil, utility.ErrInternalServerError
+		return nil, utility.ErrInternalServer
 	}
 
 	response := &model.PostResponse{
@@ -844,7 +844,7 @@ func (s *PostService) Delete(ctx context.Context, request *model.PostDelete, aut
 	var files []entity.File
 	if err := s.FileRepository.FindByPostId(tx, &files, post.ID); err != nil {
 		slog.Error(err.Error())
-		return utility.ErrInternalServerError
+		return utility.ErrInternalServer
 	}
 
 	var fileNames []string
@@ -872,7 +872,7 @@ func (s *PostService) Delete(ctx context.Context, request *model.PostDelete, aut
 					if err := s.FileStorage.Delete(s.Config.GetString("storage.post") + fileName); err != nil {
 						slog.Error(err.Error())
 						once.Do(func() {
-							errChan <- utility.ErrInternalServerError
+							errChan <- utility.ErrInternalServer
 							cancel()
 						})
 					}
@@ -892,7 +892,7 @@ func (s *PostService) Delete(ctx context.Context, request *model.PostDelete, aut
 	if post.Thumbnail != "" {
 		if err := s.FileStorage.Delete(s.Config.GetString("storage.post") + post.Thumbnail); err != nil {
 			slog.Error(err.Error())
-			return utility.ErrInternalServerError
+			return utility.ErrInternalServer
 		}
 	}
 
@@ -900,18 +900,18 @@ func (s *PostService) Delete(ctx context.Context, request *model.PostDelete, aut
 	if len(fileNames) > 0 {
 		if err := s.FileRepository.DeleteUnusedFile(tx, post.ID, fileNames); err != nil {
 			slog.Error(err.Error())
-			return utility.ErrInternalServerError
+			return utility.ErrInternalServer
 		}
 	}
 
 	if err := s.PostRepository.Delete(tx, post); err != nil {
 		slog.Error(err.Error())
-		return utility.ErrInternalServerError
+		return utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
-		return utility.ErrInternalServerError
+		return utility.ErrInternalServer
 	}
 
 	return nil
