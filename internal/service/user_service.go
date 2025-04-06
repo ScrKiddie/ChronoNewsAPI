@@ -16,22 +16,23 @@ import (
 )
 
 type UserService struct {
-	DB             *gorm.DB
-	UserRepository *repository.UserRepository
-	PostRepository *repository.PostRepository
-	FileStorage    *adapter.StorageAdapter
-	Captcha        *adapter.CaptchaAdapter
-	Validator      *validator.Validate
-	Config         *viper.Viper
+	DB              *gorm.DB
+	UserRepository  *repository.UserRepository
+	PostRepository  *repository.PostRepository
+	ResetRepository *repository.ResetRepository
+	StorageAdapter  *adapter.StorageAdapter
+	CaptchaAdapter  *adapter.CaptchaAdapter
+	Validator       *validator.Validate
+	Config          *viper.Viper
 }
 
-func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, postRepository *repository.PostRepository, fileStorage *adapter.StorageAdapter, captcha *adapter.CaptchaAdapter, validator *validator.Validate, config *viper.Viper) *UserService {
+func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, postRepository *repository.PostRepository, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, validator *validator.Validate, config *viper.Viper) *UserService {
 	return &UserService{
 		DB:             db,
 		UserRepository: userRepository,
 		PostRepository: postRepository,
-		FileStorage:    fileStorage,
-		Captcha:        captcha,
+		StorageAdapter: storageAdapter,
+		CaptchaAdapter: captchaAdapter,
 		Validator:      validator,
 		Config:         config,
 	}
@@ -40,7 +41,7 @@ func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, post
 func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*model.Auth, error) {
 	if err := s.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
-		return nil, utility.NewCustomError(401, "EmailAdapter atau password salah")
+		return nil, utility.ErrBadRequest
 	}
 
 	captchaRequest := &model.CaptchaRequest{
@@ -48,7 +49,7 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 		Secret:       s.Config.GetString("captcha.secret"),
 	}
 
-	ok, err := s.Captcha.Verify(captchaRequest)
+	ok, err := s.CaptchaAdapter.Verify(captchaRequest)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
@@ -63,11 +64,11 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 
 	if err := s.UserRepository.FindPasswordByEmail(db, user, request.Email); err != nil {
 		slog.Error(err.Error())
-		return nil, utility.NewCustomError(401, "EmailAdapter atau password salah")
+		return nil, utility.NewCustomError(401, "Email atau password salah")
 	}
 
 	if !utility.VerifyPassword(user.Password, request.Password) {
-		return nil, utility.NewCustomError(401, "EmailAdapter atau password salah")
+		return nil, utility.NewCustomError(401, "Email atau password salah")
 	}
 
 	token, err := utility.CreateJWT(s.Config.GetString("jwt.secret"), user.Role, s.Config.GetInt("jwt.exp"), user.ID)
@@ -88,7 +89,7 @@ func (s *UserService) Verify(ctx context.Context, request *model.Auth) (*model.A
 
 	user := new(entity.User)
 	db := s.DB.WithContext(ctx)
-	if err := s.UserRepository.FindById(db, user, auth.ID); err != nil {
+	if err := s.UserRepository.FindByID(db, user, auth.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrUnauthorized
 	}
@@ -104,7 +105,7 @@ func (s *UserService) Current(ctx context.Context, request *model.Auth) (*model.
 
 	db := s.DB.WithContext(ctx)
 	user := new(entity.User)
-	if err := s.UserRepository.FindById(db, user, request.ID); err != nil {
+	if err := s.UserRepository.FindByID(db, user, request.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}
@@ -129,7 +130,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	defer tx.Rollback()
 
 	if unique := s.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 && unique != auth.ID {
-		return nil, utility.NewCustomError(http.StatusConflict, "EmailAdapter already exists")
+		return nil, utility.NewCustomError(http.StatusConflict, "Email already exists")
 	}
 
 	if unique := s.UserRepository.FindIDByPhoneNumber(tx, request.PhoneNumber); unique != 0 && unique != auth.ID {
@@ -137,7 +138,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	}
 
 	user := new(entity.User)
-	if err := s.UserRepository.FindById(tx, user, auth.ID); err != nil {
+	if err := s.UserRepository.FindByID(tx, user, auth.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}
@@ -158,14 +159,14 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	}
 
 	if request.ProfilePicture != nil && oldFileName != "" {
-		if err := s.FileStorage.Delete(s.Config.GetString("storage.profile") + oldFileName); err != nil {
+		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + oldFileName); err != nil {
 			slog.Error(err.Error())
 			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if request.ProfilePicture != nil {
-		if err := s.FileStorage.Store(request.ProfilePicture, s.Config.GetString("storage.profile")+user.ProfilePicture); err != nil {
+		if err := s.StorageAdapter.Store(request.ProfilePicture, s.Config.GetString("storage.profile")+user.ProfilePicture); err != nil {
 			slog.Error(err.Error())
 			return nil, utility.ErrInternalServer
 		}
@@ -196,7 +197,7 @@ func (s *UserService) UpdatePassword(ctx context.Context, request *model.UserUpd
 	defer tx.Rollback()
 
 	user := new(entity.User)
-	if err := s.UserRepository.FindById(tx, user, auth.ID); err != nil {
+	if err := s.UserRepository.FindByID(tx, user, auth.ID); err != nil {
 		slog.Error(err.Error())
 		return utility.ErrInternalServer
 	}
@@ -290,7 +291,7 @@ func (s *UserService) Get(ctx context.Context, request *model.UserGet, auth *mod
 	}
 
 	user := new(entity.User)
-	if err := s.UserRepository.FindById(db, user, request.ID); err != nil {
+	if err := s.UserRepository.FindByID(db, user, request.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrNotFound
 	}
@@ -320,7 +321,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	}
 
 	if unique := s.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 {
-		return nil, utility.NewCustomError(http.StatusConflict, "EmailAdapter already exists")
+		return nil, utility.NewCustomError(http.StatusConflict, "Email already exists")
 	}
 
 	if unique := s.UserRepository.FindIDByPhoneNumber(tx, request.PhoneNumber); unique != 0 {
@@ -350,7 +351,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	}
 
 	if request.ProfilePicture != nil {
-		if err := s.FileStorage.Store(request.ProfilePicture, s.Config.GetString("storage.profile")+user.ProfilePicture); err != nil {
+		if err := s.StorageAdapter.Store(request.ProfilePicture, s.Config.GetString("storage.profile")+user.ProfilePicture); err != nil {
 			slog.Error(err.Error())
 			return nil, utility.ErrInternalServer
 		}
@@ -390,14 +391,14 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	}
 
 	user := new(entity.User)
-	if err := s.UserRepository.FindById(tx, user, request.ID); err != nil {
+	if err := s.UserRepository.FindByID(tx, user, request.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrNotFound
 	}
 
 	if request.Email != user.Email {
 		if unique := s.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 {
-			return nil, utility.NewCustomError(http.StatusConflict, "EmailAdapter already exists")
+			return nil, utility.NewCustomError(http.StatusConflict, "Email already exists")
 		}
 	}
 
@@ -432,14 +433,14 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	}
 
 	if request.ProfilePicture != nil && oldFileName != "" {
-		if err := s.FileStorage.Delete(s.Config.GetString("storage.profile") + oldFileName); err != nil {
+		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + oldFileName); err != nil {
 			slog.Error(err.Error())
 			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if request.ProfilePicture != nil {
-		if err := s.FileStorage.Store(
+		if err := s.StorageAdapter.Store(
 			request.ProfilePicture,
 			s.Config.GetString("storage.profile")+user.ProfilePicture,
 		); err != nil {
@@ -490,7 +491,7 @@ func (s *UserService) Delete(ctx context.Context, request *model.UserDelete, aut
 	}
 
 	user := new(entity.User)
-	if err := s.UserRepository.FindById(tx, user, request.ID); err != nil {
+	if err := s.UserRepository.FindByID(tx, user, request.ID); err != nil {
 		slog.Error(err.Error())
 		return utility.ErrNotFound
 	}
@@ -501,7 +502,7 @@ func (s *UserService) Delete(ctx context.Context, request *model.UserDelete, aut
 	}
 
 	if user.ProfilePicture != "" {
-		if err := s.FileStorage.Delete(s.Config.GetString("storage.profile") + user.ProfilePicture); err != nil {
+		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + user.ProfilePicture); err != nil {
 			slog.Error(err.Error())
 			return utility.ErrInternalServer
 		}

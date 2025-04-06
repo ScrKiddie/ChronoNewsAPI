@@ -20,7 +20,8 @@ type ResetService struct {
 	DB              *gorm.DB
 	ResetRepository *repository.ResetRepository
 	UserRepository  *repository.UserRepository
-	Email           *adapter.EmailAdapter
+	EmailAdapter    *adapter.EmailAdapter
+	CaptchaAdapter  *adapter.CaptchaAdapter
 	Validator       *validator.Validate
 	Config          *viper.Viper
 }
@@ -29,7 +30,8 @@ func NewResetService(
 	db *gorm.DB,
 	resetRepository *repository.ResetRepository,
 	userRepository *repository.UserRepository,
-	email *adapter.EmailAdapter,
+	emailAdapter *adapter.EmailAdapter,
+	captchaAdapter *adapter.CaptchaAdapter,
 	validator *validator.Validate,
 	config *viper.Viper,
 ) *ResetService {
@@ -38,6 +40,8 @@ func NewResetService(
 		ResetRepository: resetRepository,
 		UserRepository:  userRepository,
 		Validator:       validator,
+		EmailAdapter:    emailAdapter,
+		CaptchaAdapter:  captchaAdapter,
 		Config:          config,
 	}
 }
@@ -45,7 +49,21 @@ func NewResetService(
 func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmailRequest) error {
 	if err := s.Validator.Struct(request); err != nil {
 		slog.Error(err.Error())
-		return nil
+		return utility.ErrBadRequest
+	}
+
+	captchaRequest := &model.CaptchaRequest{
+		TokenCaptcha: request.TokenCaptcha,
+		Secret:       s.Config.GetString("captcha.secret"),
+	}
+
+	ok, err := s.CaptchaAdapter.Verify(captchaRequest)
+	if err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServer
+	}
+	if !ok {
+		return utility.ErrBadRequest
 	}
 
 	tx := s.DB.WithContext(ctx).Begin()
@@ -59,15 +77,22 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 	code := uuid.New().String()
 	expiredAt := time.Now().Add(time.Hour * time.Duration(s.Config.GetInt("reset.exp"))).Unix()
 
-	reset := &entity.Reset{
-		UserID:    id,
-		Code:      code,
-		ExpiredAt: expiredAt,
-	}
+	reset := &entity.Reset{UserID: id}
+	err = s.ResetRepository.FindByUserID(tx, reset, id)
+	reset.Code = code
+	reset.ExpiredAt = expiredAt
 
-	if err := s.ResetRepository.Create(tx, reset); err != nil {
+	if err != nil {
 		slog.Error(err.Error())
-		return utility.ErrInternalServer
+		if err := s.ResetRepository.Create(tx, reset); err != nil {
+			slog.Error(err.Error())
+			return utility.ErrInternalServer
+		}
+	} else {
+		if err := s.ResetRepository.Update(tx, reset); err != nil {
+			slog.Error(err.Error())
+			return utility.ErrInternalServer
+		}
 	}
 
 	resetURL := s.Config.GetString("reset.url") + "?" + s.Config.GetString("reset.query") + "=" + code
@@ -98,7 +123,66 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 		Subject:   "Permintaan Reset Password - " + s.Config.GetString("smtp.from.name"),
 	}
 
-	if err := s.Email.Send(emailRequest); err != nil {
+	if err := s.EmailAdapter.Send(emailRequest); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServer
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServer
+	}
+
+	return nil
+}
+
+func (s *ResetService) Reset(ctx context.Context, request *model.ResetRequest) error {
+	if err := s.Validator.Struct(request); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrBadRequest
+	}
+
+	tx := s.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	reset := &entity.Reset{}
+	if err := s.ResetRepository.FindByCode(tx, reset, request.Code); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrNotFound
+	}
+
+	if reset.ExpiredAt < time.Now().Unix() {
+		if err := s.ResetRepository.Delete(tx, reset); err != nil {
+			slog.Error(err.Error())
+			return utility.ErrInternalServer
+		}
+		if err := tx.Commit().Error; err != nil {
+			slog.Error(err.Error())
+			return utility.ErrInternalServer
+		}
+		return utility.ErrBadRequest
+	}
+
+	user := new(entity.User)
+	if err := s.UserRepository.FindByID(tx, user, reset.UserID); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrNotFound
+	}
+
+	hashedPassword, err := utility.HashPassword(request.Password)
+	if err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServer
+	}
+
+	user.Password = hashedPassword
+
+	if err := s.UserRepository.Update(tx, user); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServer
+	}
+
+	if err := s.ResetRepository.Delete(tx, reset); err != nil {
 		slog.Error(err.Error())
 		return utility.ErrInternalServer
 	}

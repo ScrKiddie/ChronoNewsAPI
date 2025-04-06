@@ -7,5 +7,6 @@ type ResetRequest struct {
 }
 
 type ResetEmailRequest struct {
-	Email string `validate:"required,email,max=255" json:"email"`
+	Email        string `validate:"required,email,max=255" json:"email"`
+	TokenCaptcha string `json:"tokenCaptcha" validate:"required,min=100"`
 }

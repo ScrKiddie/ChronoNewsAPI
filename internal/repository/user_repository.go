@@ -36,16 +36,12 @@ func (u *UserRepository) FindPasswordByEmail(db *gorm.DB, entity *entity.User, e
 	return db.Where("email = ?", email).First(entity).Error
 }
 
-func (u *UserRepository) FindById(db *gorm.DB, entity *entity.User, id int32) error {
+func (u *UserRepository) FindByID(db *gorm.DB, entity *entity.User, id int32) error {
 	return db.Where("id = ?", id).First(entity).Error
 }
 
 func (u *UserRepository) IsAdmin(db *gorm.DB, id int32) error {
 	return db.Where("id = ?", id).Where("role = ?", constant.Admin).First(&entity.User{}).Error
-}
-
-func (u *UserRepository) FindByID(db *gorm.DB, entity *entity.User, id int32) error {
-	return db.Where("id = ?", id).First(entity).Error
 }
 
 func (u *UserRepository) Search(db *gorm.DB, request *model.UserSearch, entities *[]entity.User, currentId int32) (int64, error) {

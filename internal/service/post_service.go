@@ -26,7 +26,7 @@ type PostService struct {
 	UserRepository     *repository.UserRepository
 	FileRepository     *repository.FileRepository
 	CategoryRepository *repository.CategoryRepository
-	FileStorage        *adapter.StorageAdapter
+	StorageAdapter     *adapter.StorageAdapter
 	Validator          *validator.Validate
 	Config             *viper.Viper
 }
@@ -37,7 +37,7 @@ func NewPostService(
 	userRepository *repository.UserRepository,
 	fileRepository *repository.FileRepository,
 	categoryRepository *repository.CategoryRepository,
-	fileStorage *adapter.StorageAdapter,
+	storageAdapter *adapter.StorageAdapter,
 	validator *validator.Validate,
 	config *viper.Viper,
 ) *PostService {
@@ -47,7 +47,7 @@ func NewPostService(
 		UserRepository:     userRepository,
 		FileRepository:     fileRepository,
 		CategoryRepository: categoryRepository,
-		FileStorage:        fileStorage,
+		StorageAdapter:     storageAdapter,
 		Validator:          validator,
 		Config:             config,
 	}
@@ -156,12 +156,12 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 //		return nil, utility.ErrBadRequest
 //	}
 //
-//	if err := s.UserRepository.FindById(tx, &entity.User{}, request.UserID); err != nil {
+//	if err := s.UserRepository.FindByID(tx, &entity.User{}, request.UserID); err != nil {
 //		slog.Error(err.Error())
 //		return nil, utility.ErrNotFound
 //	}
 //
-//	if err := s.CategoryRepository.FindById(tx, &entity.Category{}, request.CategoryID); err != nil {
+//	if err := s.CategoryRepository.FindByID(tx, &entity.Category{}, request.CategoryID); err != nil {
 //		slog.Error(err.Error())
 //		return nil, utility.ErrNotFound
 //	}
@@ -302,7 +302,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		return nil, utility.ErrBadRequest
 	}
 
-	if err := s.UserRepository.FindById(tx, &entity.User{}, request.UserID); err != nil {
+	if err := s.UserRepository.FindByID(tx, &entity.User{}, request.UserID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrNotFound
 	}
@@ -412,7 +412,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 			wg.Add(1)
 			go func(fileName string) {
 				defer wg.Done()
-				if err := s.FileStorage.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
+				if err := s.StorageAdapter.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
 					slog.Error(err.Error())
 				}
 			}(fileName)
@@ -462,7 +462,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	}
 
 	if request.Thumbnail != nil {
-		if err := s.FileStorage.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
+		if err := s.StorageAdapter.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
 			slog.Error(err.Error())
 			return nil, utility.ErrInternalServer
 		}
@@ -480,7 +480,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 				case <-ctx.Done():
 					return
 				default:
-					if err := s.FileStorage.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
+					if err := s.StorageAdapter.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
 						slog.Error(err.Error())
 						once.Do(func() {
 							errChan <- utility.ErrInternalServer
@@ -649,7 +649,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 			wg.Add(1)
 			go func(fileName string) {
 				defer wg.Done()
-				if err := s.FileStorage.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
+				if err := s.StorageAdapter.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
 					slog.Error(err.Error())
 				}
 			}(newFileName)
@@ -717,7 +717,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 				case <-ctx.Done():
 					return
 				default:
-					if err := s.FileStorage.Delete(s.Config.GetString("storage.post") + file.Name); err != nil {
+					if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + file.Name); err != nil {
 						slog.Error(err.Error())
 						once.Do(func() {
 							errChan <- utility.ErrInternalServer
@@ -754,14 +754,14 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	}
 
 	if request.Thumbnail != nil && oldThumbnail != "" {
-		if err := s.FileStorage.Delete(s.Config.GetString("storage.post") + oldThumbnail); err != nil {
+		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + oldThumbnail); err != nil {
 			slog.Error(err.Error())
 		}
 	}
 
 	// simpan thumbnail baru
 	if request.Thumbnail != nil {
-		if err := s.FileStorage.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
+		if err := s.StorageAdapter.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
 			slog.Error(err.Error())
 			return nil, utility.ErrInternalServer
 		}
@@ -778,7 +778,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 				case <-ctx.Done():
 					return
 				default:
-					if err := s.FileStorage.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
+					if err := s.StorageAdapter.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
 						slog.Error(err.Error())
 						once.Do(func() {
 							errChan <- utility.ErrInternalServer
@@ -869,7 +869,7 @@ func (s *PostService) Delete(ctx context.Context, request *model.PostDelete, aut
 				case <-ctx.Done():
 					return
 				default:
-					if err := s.FileStorage.Delete(s.Config.GetString("storage.post") + fileName); err != nil {
+					if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + fileName); err != nil {
 						slog.Error(err.Error())
 						once.Do(func() {
 							errChan <- utility.ErrInternalServer
@@ -890,7 +890,7 @@ func (s *PostService) Delete(ctx context.Context, request *model.PostDelete, aut
 	}
 
 	if post.Thumbnail != "" {
-		if err := s.FileStorage.Delete(s.Config.GetString("storage.post") + post.Thumbnail); err != nil {
+		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + post.Thumbnail); err != nil {
 			slog.Error(err.Error())
 			return utility.ErrInternalServer
 		}
