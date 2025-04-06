@@ -220,7 +220,6 @@ func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
 // @Param phoneNumber formData string true "Phone number"
 // @Param email formData string true "Email"
 // @Param profilePicture formData file false "Profile picture"
-// @Param password formData string true "Password"
 // @Param role formData string true "Role (admin, journalist)"
 // @Success 201 {object} utility.ResponseSuccess{data=model.UserResponse}
 // @Failure 400 {object} utility.ResponseError
@@ -235,7 +234,6 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 	request.Role = r.FormValue("role")
 	request.PhoneNumber = r.FormValue("phoneNumber")
 	request.Email = r.FormValue("email")
-	request.Password = r.FormValue("password")
 	_, request.ProfilePicture, _ = r.FormFile("profilePicture")
 
 	response, err := c.UserService.Create(r.Context(), request, auth)

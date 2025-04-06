@@ -51,7 +51,6 @@ type UserCreate struct {
 	PhoneNumber    string                `validate:"required,max=20"`
 	Email          string                `validate:"required,email,max=255"`
 	ProfilePicture *multipart.FileHeader `validate:"omitempty,image"`
-	Password       string                `validate:"required,passwordformat,min=8,max=255"`
 	Role           string                `validate:"required,oneof=admin journalist"`
 }
 

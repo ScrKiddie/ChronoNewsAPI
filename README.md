@@ -11,20 +11,31 @@ The main feature of ChronoVerseAPI is its ability to automatically detect and pr
 * **PostgreSQL**: Used as the database to store the application's data.
 
 ## Environment Variables
-| **Key**                | **Type**     | **Description**                                                                       | **Example**       |
-|--------------------|----------|---------------------------------------------------------------------------------------|-------------------|
-| **JWT_SECRET**     | `string` | Secret key for JWT authentication                                                        | `YOUR_SECRET_JWT` |
-| **JWT_EXP**     | `integer` | Expiry time for JWT token in hours | `24`              |
-| **WEB_PORT**     | `integer` | Port on which the web service will run | `3000`            |
-| **WEB_CORS_ORIGINS**     | `string` | List of allowed origins for Cross-Origin Resource Sharing (CORS) | `*,http://example.com,http://anotherdomain.com`            |
-| **CAPTCHA_SECRET** | `string` | Secret key untuk Cloudflare Turnstile.                                           | `0x4AAAAAAABBBBCCCCDDDD1234567890EE` |
-| **DB_USERNAME**    | `string` | Database username                                                          | `postgres`                                      |
-| **DB_PASSWORD**    | `string` | Database password	postg                                                          | `password123`                               |
-| **DB_HOST**        | `string` | Database host                                                                 | `localhost`                                 |
-| **DB_PORT**        | `int`    | Database port                                                        | `3306`                                      |
-| **DB_NAME**        | `string` | Database name                                                                | `prbcare`                                   |
-| **STORAGE_PROFILE**        | `string` | Path where profile pictures are stored                                                                | `./storage/profile_picture/`                                   |
-| **STORAGE_POST**        | `string` | Path where post pictures are stored                                                                | `./storage/post_picture/`                                   |
+| **Key**                     | **Type**     | **Description**                                                                                       | **Example**                                      |
+|-----------------------------|--------------|-------------------------------------------------------------------------------------------------------|--------------------------------------------------|
+| **JWT_SECRET**              | `string`     | Secret key for JWT authentication                                                                    | `mysecretkey12345`                               |
+| **JWT_EXP**                 | `integer`    | Expiry time for the JWT token in hours                                                                  | `24`                                             |
+| **WEB_PORT**                | `integer`    | Port on which the web service will run                                                                  | `8080`                                           |
+| **WEB_CORS_ORIGINS**        | `string`     | List of allowed origins for Cross-Origin Resource Sharing (CORS)                                        | `*,http://mydomain.com,http://anotherdomain.com` |
+| **CAPTCHA_SECRET**          | `string`     | Secret key for Cloudflare Turnstile                                                                   | `abcdef1234567890abcdef1234567890`               |
+| **DB_USERNAME**             | `string`     | Database username                                                                                     | `myuser`                                         |
+| **DB_PASSWORD**             | `string`     | Database password                                                                                     | `mypassword`                                     |
+| **DB_HOST**                 | `string`     | Database host                                                                                         | `localhost`                                      |
+| **DB_PORT**                 | `int`        | Database port                                                                                         | `5432`                                           |
+| **DB_NAME**                 | `string`     | Database name                                                                                         | `mydatabase`                                     |
+| **RESET_URL**               | `string`     | URL for password reset                                                                                 | `http://mydomain.com/reset`                      |
+| **RESET_QUERY**             | `string`     | Query parameter for password reset                                                                     | `code`                                           |
+| **RESET_REQUEST_URL**       | `string`     | URL for password reset request                                                                         | `http://mydomain.com/forgot`                     |
+| **RESET_EXP**               | `integer`    | Expiry time for reset code in hours                                                                     | `2`                                              |
+| **SMTP_HOST**               | `string`     | SMTP server host                                                                                        | `smtp.example.com`                               |
+| **SMTP_PORT**               | `integer`    | SMTP server port                                                                                        | `587`                                            |
+| **SMTP_USERNAME**           | `string`     | SMTP authentication username                                                                            | `dummyusername123`                               |
+| **SMTP_PASSWORD**           | `string`     | SMTP authentication password                                                                            | `dummypassword123`                               |
+| **SMTP_FROM_NAME**          | `string`     | Name of the sender for SMTP emails                                                                      | `ChronoVerse`                                    |
+| **SMTP_FROM_EMAIL**         | `string`     | Email address of the sender for SMTP emails                                                             | `dummyemail@domain.com`                          |
+| **STORAGE_PROFILE**         | `string`     | Path where profile pictures are stored                                                                   | `./storage/profile_picture/`                     |
+| **STORAGE_POST**            | `string`     | Path where post pictures are stored                                                                     | `./storage/post_picture/`                        |
+
 ## Documentation
 For the full API documentation, please refer to the SwaggerHub documentation:
-[ChronoVerseAPI Documentation](http://app.swaggerhub.com/apis-docs/scrkiddie/ChronoVerseAPI/1.0.0)
+[ChronoVerseAPI Documentation](https://app.swaggerhub.com/apis-docs/ScrKiddy/ChronoVerseAPI/1.0.0)

@@ -8,11 +8,14 @@ import (
 	"chronoverseapi/internal/utility"
 	"context"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
+	"html/template"
 	"log/slog"
 	"math"
 	"net/http"
+	"time"
 )
 
 type UserService struct {
@@ -22,19 +25,22 @@ type UserService struct {
 	ResetRepository *repository.ResetRepository
 	StorageAdapter  *adapter.StorageAdapter
 	CaptchaAdapter  *adapter.CaptchaAdapter
+	EmailAdapter    *adapter.EmailAdapter
 	Validator       *validator.Validate
 	Config          *viper.Viper
 }
 
-func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, postRepository *repository.PostRepository, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, validator *validator.Validate, config *viper.Viper) *UserService {
+func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, postRepository *repository.PostRepository, resetRepository *repository.ResetRepository, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, emailAdapter *adapter.EmailAdapter, validator *validator.Validate, config *viper.Viper) *UserService {
 	return &UserService{
-		DB:             db,
-		UserRepository: userRepository,
-		PostRepository: postRepository,
-		StorageAdapter: storageAdapter,
-		CaptchaAdapter: captchaAdapter,
-		Validator:      validator,
-		Config:         config,
+		DB:              db,
+		UserRepository:  userRepository,
+		PostRepository:  postRepository,
+		StorageAdapter:  storageAdapter,
+		CaptchaAdapter:  captchaAdapter,
+		EmailAdapter:    emailAdapter,
+		Validator:       validator,
+		Config:          config,
+		ResetRepository: resetRepository,
 	}
 }
 
@@ -333,19 +339,57 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 		user.ProfilePicture = utility.CreateFileName(request.ProfilePicture)
 	}
 
-	hashedPassword, err := utility.HashPassword(request.Password)
+	user.Name = request.Name
+	user.Email = request.Email
+	user.PhoneNumber = request.PhoneNumber
+	user.Role = request.Role
+
+	if err := s.UserRepository.Update(tx, user); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrInternalServer
+	}
+
+	code := uuid.New().String()
+	expiredAt := time.Now().Add(time.Hour * time.Duration(s.Config.GetInt("reset.exp"))).Unix()
+	reset := &entity.Reset{UserID: user.ID}
+	err := s.ResetRepository.FindByUserID(tx, reset, user.ID)
+	reset.Code = code
+	reset.ExpiredAt = expiredAt
+
+	if err := s.ResetRepository.Create(tx, reset); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrInternalServer
+	}
+
+	resetURL := s.Config.GetString("reset.url") + "?" + s.Config.GetString("reset.query") + "=" + code
+
+	emailBody := &model.EmailBodyData{
+		Code:            code,
+		ResetURL:        template.URL(resetURL),
+		ResetRequestURL: template.URL(s.Config.GetString("reset.request.url")),
+		Year:            time.Now().Year(),
+		Expired:         s.Config.GetInt("reset.exp"),
+	}
+
+	bodyContent, err := utility.GenerateEmailBody("./internal/template/registered_user_email.html", emailBody)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}
 
-	user.Name = request.Name
-	user.Email = request.Email
-	user.PhoneNumber = request.PhoneNumber
-	user.Password = hashedPassword
-	user.Role = request.Role
+	emailRequest := &model.EmailData{
+		To:        request.Email,
+		Body:      bodyContent,
+		SMTPHost:  s.Config.GetString("smtp.host"),
+		SMTPPort:  s.Config.GetInt("smtp.port"),
+		FromName:  s.Config.GetString("smtp.from.name"),
+		FromEmail: s.Config.GetString("smtp.from.email"),
+		Username:  s.Config.GetString("smtp.username"),
+		Password:  s.Config.GetString("smtp.password"),
+		Subject:   "Pendaftaran Akun Berhasil - " + s.Config.GetString("smtp.from.name"),
+	}
 
-	if err := s.UserRepository.Update(tx, user); err != nil {
+	if err := s.EmailAdapter.Send(emailRequest); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}

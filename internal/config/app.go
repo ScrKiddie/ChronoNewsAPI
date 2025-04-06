@@ -31,15 +31,15 @@ func Bootstrap(b *BootstrapConfig) {
 	resetRepository := repository.NewResetRepository()
 
 	//adapter
-	fileStorage := adapter.NewStorageAdapter()
-	captcha := adapter.NewCaptchaAdapter(b.Client)
+	storageAdapter := adapter.NewStorageAdapter()
+	captchaAdapter := adapter.NewCaptchaAdapter(b.Client)
 	emailAdapter := adapter.NewEmailAdapter()
 
 	//service
-	userService := service.NewUserService(b.DB, userRepository, postRepository, fileStorage, captcha, b.Validator, b.Config)
+	userService := service.NewUserService(b.DB, userRepository, postRepository, resetRepository, storageAdapter, captchaAdapter, emailAdapter, b.Validator, b.Config)
 	categoryService := service.NewCategoryService(b.DB, categoryRepository, userRepository, postRepository, b.Validator)
-	postService := service.NewPostService(b.DB, postRepository, userRepository, fileRepository, categoryRepository, fileStorage, b.Validator, b.Config)
-	resetService := service.NewResetService(b.DB, resetRepository, userRepository, emailAdapter, b.Validator, b.Config)
+	postService := service.NewPostService(b.DB, postRepository, userRepository, fileRepository, categoryRepository, storageAdapter, b.Validator, b.Config)
+	resetService := service.NewResetService(b.DB, resetRepository, userRepository, emailAdapter, captchaAdapter, b.Validator, b.Config)
 
 	//controller
 	userController := controller.NewUserController(userService)

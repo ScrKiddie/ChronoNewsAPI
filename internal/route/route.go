@@ -24,7 +24,7 @@ func (r *Route) Setup() {
 			guest.Get("/post/{id}", r.PostController.Get)
 			guest.Get("/category", r.CategoryController.List)
 			guest.Post("/reset/request", r.ResetController.RequestResetEmail)
-			guest.Post("/reset", r.ResetController.Reset)
+			guest.Patch("/reset", r.ResetController.Reset)
 		})
 
 		c.Group(func(auth chi.Router) {
