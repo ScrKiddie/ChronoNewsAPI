@@ -2,7 +2,7 @@ package utility
 
 import (
 	"bytes"
-	"chronoverseapi/internal/model"
+	"chrononewsapi/internal/model"
 	"html/template"
 	"log/slog"
 )

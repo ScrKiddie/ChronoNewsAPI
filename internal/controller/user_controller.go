@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"chronoverseapi/internal/model"
-	"chronoverseapi/internal/service"
-	"chronoverseapi/internal/utility"
+	"chrononewsapi/internal/model"
+	"chrononewsapi/internal/service"
+	"chrononewsapi/internal/utility"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"log/slog"

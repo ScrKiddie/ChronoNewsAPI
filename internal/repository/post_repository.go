@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"chronoverseapi/internal/entity"
-	"chronoverseapi/internal/model"
+	"chrononewsapi/internal/entity"
+	"chrononewsapi/internal/model"
 	"gorm.io/gorm"
 	"strings"
 )

@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN go build -o chronoverseapi cmd/app/main.go
+RUN go build -o chrononewsapi cmd/app/main.go
 
 FROM alpine:3.20.2
 
@@ -16,6 +16,6 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-COPY --from=build /app/chronoverseapi /app/chronoverseapi
+COPY --from=build /app/chrononewsapi /app/chrononewsapi
 
-CMD ["/app/chronoverseapi"]
+CMD ["/app/chrononewsapi"]

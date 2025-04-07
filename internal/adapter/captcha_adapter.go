@@ -2,7 +2,7 @@ package adapter
 
 import (
 	"bytes"
-	"chronoverseapi/internal/model"
+	"chrononewsapi/internal/model"
 	"encoding/json"
 	"log/slog"
 	"net/http"

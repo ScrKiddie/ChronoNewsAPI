@@ -1,10 +1,10 @@
 package service
 
 import (
-	"chronoverseapi/internal/entity"
-	"chronoverseapi/internal/model"
-	"chronoverseapi/internal/repository"
-	"chronoverseapi/internal/utility"
+	"chrononewsapi/internal/entity"
+	"chrononewsapi/internal/model"
+	"chrononewsapi/internal/repository"
+	"chrononewsapi/internal/utility"
 	"context"
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"

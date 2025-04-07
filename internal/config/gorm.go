@@ -1,7 +1,7 @@
 package config
 
 import (
-	"chronoverseapi/internal/entity"
+	"chrononewsapi/internal/entity"
 	"context"
 	"fmt"
 	slogGorm "github.com/orandin/slog-gorm"

@@ -1,8 +1,8 @@
 package route
 
 import (
-	"chronoverseapi/internal/controller"
-	"chronoverseapi/internal/middleware"
+	"chrononewsapi/internal/controller"
+	"chrononewsapi/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 )

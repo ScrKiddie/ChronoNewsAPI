@@ -1,11 +1,11 @@
 package service
 
 import (
-	"chronoverseapi/internal/adapter"
-	"chronoverseapi/internal/entity"
-	"chronoverseapi/internal/model"
-	"chronoverseapi/internal/repository"
-	"chronoverseapi/internal/utility"
+	"chrononewsapi/internal/adapter"
+	"chrononewsapi/internal/entity"
+	"chrononewsapi/internal/model"
+	"chrononewsapi/internal/repository"
+	"chrononewsapi/internal/utility"
 	"context"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-playground/validator/v10"

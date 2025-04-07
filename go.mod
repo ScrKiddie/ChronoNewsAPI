@@ -1,4 +1,4 @@
-module chronoverseapi
+module chrononewsapi
 
 go 1.23.1
 

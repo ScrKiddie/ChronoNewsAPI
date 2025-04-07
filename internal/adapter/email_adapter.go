@@ -1,7 +1,7 @@
 package adapter
 
 import (
-	"chronoverseapi/internal/model"
+	"chrononewsapi/internal/model"
 	"fmt"
 	"net/smtp"
 	"strings"

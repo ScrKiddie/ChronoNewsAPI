@@ -2,7 +2,7 @@ package utility
 
 import (
 	"bytes"
-	"chronoverseapi/internal/model"
+	"chrononewsapi/internal/model"
 	"encoding/base64"
 	"errors"
 	"fmt"

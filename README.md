@@ -1,11 +1,11 @@
-# ChronoVerseAPI
-ChronoVerseAPI is a RESTful web service API designed for minimal news platform management. It is built using Golang and the Chi router. This API provides efficient and parallel processing of news content, including automatic detection, processing, compression, validation, and storage of image files.
+# ChronoNewsAPI
+ChronoNewsAPI is a RESTful web service API designed for minimal news platform management. It is built using Golang and the Chi router. This API provides management of news posts, categories, and accounts, including the account reset process.
 
 ## Key Features
-The main feature of ChronoVerseAPI is its ability to automatically detect and process base64 encoded images in the `img` tag of news content requests. The API performs automatic compression, validation, and stores the files in parallel, ensuring efficiency and minimizing processing time.
+The main feature of ChronoNewsAPI is its ability to automatically detect and process base64 encoded images in the `img` tag of news `content` requests. The API performs automatic compression, validation, and stores the files in parallel, ensuring efficiency and minimizing processing time.
 
 ## Technologies
-* **Golang**: The primary programming language for developing ChronoVerseAPI.
+* **Golang**: The primary programming language for developing ChronoNewsAPI.
 * **Chi Router**: Used for routing in the web service.
 * **GORM**: An ORM library for Golang to interact with the PostgreSQL database.
 * **PostgreSQL**: Used as the database to store the application's data.
@@ -31,11 +31,11 @@ The main feature of ChronoVerseAPI is its ability to automatically detect and pr
 | **SMTP_PORT**               | `integer`    | SMTP server port                                                                                        | `587`                                            |
 | **SMTP_USERNAME**           | `string`     | SMTP authentication username                                                                            | `dummyusername123`                               |
 | **SMTP_PASSWORD**           | `string`     | SMTP authentication password                                                                            | `dummypassword123`                               |
-| **SMTP_FROM_NAME**          | `string`     | Name of the sender for SMTP emails                                                                      | `ChronoVerse`                                    |
+| **SMTP_FROM_NAME**          | `string`     | Name of the sender for SMTP emails                                                                      | `AppName`                                        |
 | **SMTP_FROM_EMAIL**         | `string`     | Email address of the sender for SMTP emails                                                             | `dummyemail@domain.com`                          |
 | **STORAGE_PROFILE**         | `string`     | Path where profile pictures are stored                                                                   | `./storage/profile_picture/`                     |
 | **STORAGE_POST**            | `string`     | Path where post pictures are stored                                                                     | `./storage/post_picture/`                        |
 
 ## Documentation
-For the full API documentation, please refer to the SwaggerHub documentation:
-[ChronoVerseAPI Documentation](https://app.swaggerhub.com/apis-docs/ScrKiddy/ChronoVerseAPI/1.0.0)
+For the full API documentation, please refer to the documentation:
+[ChronoNewsAPI Documentation](https://app.swaggerhub.com/apis-docs/ScrKiddy/ChronoNewsAPI/1.0.0)

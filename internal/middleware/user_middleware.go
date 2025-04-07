@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"chronoverseapi/internal/model"
-	"chronoverseapi/internal/service"
-	"chronoverseapi/internal/utility"
+	"chrononewsapi/internal/model"
+	"chrononewsapi/internal/service"
+	"chrononewsapi/internal/utility"
 	"context"
 	"log/slog"
 	"net/http"

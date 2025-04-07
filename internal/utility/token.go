@@ -1,7 +1,7 @@
 package utility
 
 import (
-	"chronoverseapi/internal/model"
+	"chrononewsapi/internal/model"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"time"

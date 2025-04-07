@@ -1,7 +1,7 @@
 package main
 
 import (
-	"chronoverseapi/internal/config"
+	"chrononewsapi/internal/config"
 	"log"
 	"log/slog"
 	"net/http"
