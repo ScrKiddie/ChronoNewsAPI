@@ -75,7 +75,7 @@ func (r *PostRepository) FindByIDAndUserID(db *gorm.DB, post *entity.Post, postI
 func (r *PostRepository) Update(db *gorm.DB, post *entity.Post) error {
 	return db.Model(post).
 		Omit("Category", "User").
-		Updates(post).Error
+		Save(post).Error
 }
 
 func (r *PostRepository) ExistsByUserID(db *gorm.DB, userID int32) (bool, error) {

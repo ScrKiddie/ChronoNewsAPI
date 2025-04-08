@@ -164,10 +164,7 @@ func (s *ResetService) Reset(ctx context.Context, request *model.ResetRequest) e
 	}
 
 	user := new(entity.User)
-	if err := s.UserRepository.FindByID(tx, user, reset.UserID); err != nil {
-		slog.Error(err.Error())
-		return utility.ErrNotFound
-	}
+	user.ID = reset.UserID
 
 	hashedPassword, err := utility.HashPassword(request.Password)
 	if err != nil {
@@ -177,7 +174,7 @@ func (s *ResetService) Reset(ctx context.Context, request *model.ResetRequest) e
 
 	user.Password = hashedPassword
 
-	if err := s.UserRepository.Update(tx, user); err != nil {
+	if err := s.UserRepository.Updates(tx, user); err != nil {
 		slog.Error(err.Error())
 		return utility.ErrInternalServer
 	}

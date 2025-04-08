@@ -626,6 +626,10 @@ paths:
         in: formData
         name: thumbnail
         type: file
+      - description: Delete Thumbnail
+        in: formData
+        name: deleteThumbnail
+        type: boolean
       produces:
       - application/json
       responses:
@@ -968,6 +972,10 @@ paths:
         name: role
         required: true
         type: string
+      - description: Delete profile picture
+        in: formData
+        name: deleteProfilePicture
+        type: boolean
       produces:
       - application/json
       responses:
@@ -1101,6 +1109,10 @@ paths:
         in: formData
         name: profilePicture
         type: file
+      - description: Delete profile picture
+        in: formData
+        name: deleteProfilePicture
+        type: boolean
       produces:
       - application/json
       responses:

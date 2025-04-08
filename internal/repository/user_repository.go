@@ -86,3 +86,7 @@ func (u *UserRepository) Search(db *gorm.DB, request *model.UserSearch, entities
 
 	return total, err
 }
+func (r *UserRepository) Updates(db *gorm.DB, user *entity.User) error {
+	return db.Model(user).
+		Updates(user).Error
+}

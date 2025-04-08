@@ -25,10 +25,11 @@ type UserLogin struct {
 }
 
 type UserUpdateProfile struct {
-	Name           string                `validate:"required,min=3,max=255"`
-	PhoneNumber    string                `validate:"required,max=20"`
-	Email          string                `validate:"required,email,max=255"`
-	ProfilePicture *multipart.FileHeader `validate:"omitempty,image"`
+	Name                 string                `validate:"required,min=3,max=255"`
+	PhoneNumber          string                `validate:"required,max=20"`
+	Email                string                `validate:"required,email,max=255"`
+	ProfilePicture       *multipart.FileHeader `validate:"omitempty,image"`
+	DeleteProfilePicture bool
 }
 
 type UserUpdatePassword struct {
@@ -38,12 +39,12 @@ type UserUpdatePassword struct {
 }
 
 type UserSearch struct {
-	Name        string `validate:"omitempty"`
-	PhoneNumber string `validate:"omitempty"`
-	Email       string `validate:"omitempty"`
-	Role        string `validate:"omitempty"`
-	Page        int64  `validate:"omitempty"`
-	Size        int64  `validate:"omitempty"`
+	Name        string
+	PhoneNumber string
+	Email       string
+	Role        string
+	Page        int64
+	Size        int64
 }
 
 type UserCreate struct {
@@ -55,13 +56,14 @@ type UserCreate struct {
 }
 
 type UserUpdate struct {
-	ID             int32                 `validate:"required"`
-	Name           string                `validate:"required,min=3,max=255"`
-	PhoneNumber    string                `validate:"required,max=20"`
-	Email          string                `validate:"required,email,max=255"`
-	ProfilePicture *multipart.FileHeader `validate:"omitempty,image"`
-	Password       string                `validate:"omitempty,passwordformat,min=8,max=255"`
-	Role           string                `validate:"required,oneof=admin journalist"`
+	ID                   int32                 `validate:"required"`
+	Name                 string                `validate:"required,min=3,max=255"`
+	PhoneNumber          string                `validate:"required,max=20"`
+	Email                string                `validate:"required,email,max=255"`
+	ProfilePicture       *multipart.FileHeader `validate:"omitempty,image"`
+	Password             string                `validate:"omitempty,passwordformat,min=8,max=255"`
+	Role                 string                `validate:"required,oneof=admin journalist"`
+	DeleteProfilePicture bool
 }
 
 type UserDelete struct {

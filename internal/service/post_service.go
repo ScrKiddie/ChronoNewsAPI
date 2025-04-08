@@ -532,6 +532,9 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		post.UserID = auth.ID
 	}
 
+	if request.DeleteThumbnail {
+		post.Thumbnail = ""
+	}
 	if request.Thumbnail != nil {
 		post.Thumbnail = utility.CreateFileName(request.Thumbnail)
 	}
@@ -607,7 +610,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		}
 	}
 
-	if request.Thumbnail != nil && oldThumbnail != "" {
+	if (request.Thumbnail != nil || request.DeleteThumbnail) && oldThumbnail != "" {
 		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + oldThumbnail); err != nil {
 			slog.Error(err.Error())
 		}

@@ -151,6 +151,10 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 
 	oldFileName := user.ProfilePicture
 
+	if request.DeleteProfilePicture {
+		user.ProfilePicture = ""
+	}
+
 	if request.ProfilePicture != nil {
 		user.ProfilePicture = utility.CreateFileName(request.ProfilePicture)
 	}
@@ -164,7 +168,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 		return nil, utility.ErrInternalServer
 	}
 
-	if request.ProfilePicture != nil && oldFileName != "" {
+	if (request.ProfilePicture != nil || request.DeleteProfilePicture) && oldFileName != "" {
 		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + oldFileName); err != nil {
 			slog.Error(err.Error())
 			return nil, utility.ErrInternalServer
@@ -458,6 +462,10 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	user.Role = request.Role
 	oldFileName := user.ProfilePicture
 
+	if request.DeleteProfilePicture {
+		user.ProfilePicture = ""
+	}
+
 	if request.ProfilePicture != nil {
 		user.ProfilePicture = utility.CreateFileName(request.ProfilePicture)
 	}
@@ -476,7 +484,7 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 		return nil, utility.ErrInternalServer
 	}
 
-	if request.ProfilePicture != nil && oldFileName != "" {
+	if (request.ProfilePicture != nil || request.DeleteProfilePicture) && oldFileName != "" {
 		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + oldFileName); err != nil {
 			slog.Error(err.Error())
 			return nil, utility.ErrInternalServer

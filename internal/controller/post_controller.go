@@ -171,6 +171,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 // @Param userID formData int32 false "User ID"
 // @Param categoryID formData int32 true "Category ID"
 // @Param thumbnail formData file false "Post Thumbnail"
+// @Param deleteThumbnail formData bool false "Delete Thumbnail"
 // @Success 200 {object} utility.ResponseSuccess{data=model.PostResponse}
 // @Failure 400 {object} utility.ResponseError
 // @Failure 404 {object} utility.ResponseError
@@ -219,7 +220,7 @@ func (c *PostController) Update(w http.ResponseWriter, r *http.Request) {
 		CategoryID: categoryID,
 	}
 	_, request.Thumbnail, _ = r.FormFile("thumbnail")
-
+	request.DeleteThumbnail = r.FormValue("deleteThumbnail") == "true"
 	post, err := c.PostService.Update(r.Context(), request, auth)
 	if err != nil {
 		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)

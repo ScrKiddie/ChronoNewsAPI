@@ -78,6 +78,7 @@ func (c *UserController) Current(w http.ResponseWriter, r *http.Request) {
 // @Param phoneNumber formData string true "Phone number"
 // @Param email formData string true "Email"
 // @Param profilePicture formData file false "Profile picture"
+// @Param deleteProfilePicture formData bool false "Delete profile picture"
 // @Success 200 {object} utility.ResponseSuccess{data=model.UserResponse}
 // @Failure 400 {object} utility.ResponseError
 // @Failure 401 {object} utility.ResponseError
@@ -89,6 +90,7 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	request.Name = r.FormValue("name")
 	request.PhoneNumber = r.FormValue("phoneNumber")
 	request.Email = r.FormValue("email")
+	request.DeleteProfilePicture = r.FormValue("deleteProfilePicture") == "true"
 	_, request.ProfilePicture, _ = r.FormFile("profilePicture")
 	response, err := c.UserService.UpdateProfile(r.Context(), request, auth)
 	if err != nil {
@@ -260,6 +262,7 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 // @Param profilePicture formData file false "Profile picture"
 // @Param password formData string false "Password"
 // @Param role formData string true "Role"
+// @Param deleteProfilePicture formData bool false "Delete profile picture"
 // @Success 200 {object} utility.ResponseSuccess{data=model.UserResponse}
 // @Failure 400 {object} utility.ResponseError
 // @Failure 401 {object} utility.ResponseError
@@ -284,7 +287,7 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 	request.Email = r.FormValue("email")
 	request.Password = r.FormValue("password")
 	_, request.ProfilePicture, _ = r.FormFile("profilePicture")
-
+	request.DeleteProfilePicture = r.FormValue("deleteProfilePicture") == "true"
 	response, err := c.UserService.Update(r.Context(), request, auth)
 	if err != nil {
 		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)

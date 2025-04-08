@@ -673,6 +673,12 @@ const docTemplate = `{
                         "description": "Post Thumbnail",
                         "name": "thumbnail",
                         "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Delete Thumbnail",
+                        "name": "deleteThumbnail",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -1222,6 +1228,12 @@ const docTemplate = `{
                         "description": "Profile picture",
                         "name": "profilePicture",
                         "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Delete profile picture",
+                        "name": "deleteProfilePicture",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -1447,6 +1459,12 @@ const docTemplate = `{
                         "name": "role",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Delete profile picture",
+                        "name": "deleteProfilePicture",
+                        "in": "formData"
                     }
                 ],
                 "responses": {

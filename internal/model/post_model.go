@@ -31,32 +31,33 @@ type PostGet struct {
 }
 
 type PostSearch struct {
-	UserID       int32  `validate:"omitempty"`
-	Title        string `validate:"omitempty"`
-	CategoryName string `validate:"omitempty"`
-	UserName     string `validate:"omitempty"`
-	Summary      string `validate:"omitempty"`
-	Page         int64  `validate:"omitempty"`
-	Size         int64  `validate:"omitempty"`
+	UserID       int32
+	Title        string
+	CategoryName string
+	UserName     string
+	Summary      string
+	Page         int64
+	Size         int64
 }
 
 type PostCreate struct {
-	Title      string                `validate:"required,max=255"`
-	Summary    string                `validate:"required,max=1000"`
-	Content    string                `validate:"omitempty"`
+	Title      string `validate:"required,max=255"`
+	Summary    string `validate:"required,max=1000"`
+	Content    string
 	UserID     int32                 `validate:"omitempty,required"`
 	CategoryID int32                 `validate:"required"`
 	Thumbnail  *multipart.FileHeader `validate:"omitempty,image=1200_675"`
 }
 
 type PostUpdate struct {
-	ID         int32                 `validate:"required"`
-	Title      string                `validate:"required,max=255"`
-	Summary    string                `validate:"required,max=1000"`
-	Content    string                `validate:"omitempty"`
-	UserID     int32                 `validate:"omitempty,required"`
-	CategoryID int32                 `validate:"required"`
-	Thumbnail  *multipart.FileHeader `validate:"omitempty,image=1200_675"`
+	ID              int32  `validate:"required"`
+	Title           string `validate:"required,max=255"`
+	Summary         string `validate:"required,max=1000"`
+	Content         string
+	UserID          int32                 `validate:"omitempty,required"`
+	CategoryID      int32                 `validate:"required"`
+	Thumbnail       *multipart.FileHeader `validate:"omitempty,image=1200_675"`
+	DeleteThumbnail bool
 }
 
 type PostDelete struct {
