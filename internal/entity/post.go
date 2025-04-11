@@ -12,6 +12,7 @@ type Post struct {
 	Content       string   `gorm:"column:content;type:text"`
 	PublishedDate int64    `gorm:"column:published_date;type:bigint;not null"`
 	LastUpdated   int64    `gorm:"column:last_updated;type:bigint;not null"`
+	ViewCount     int64    `gorm:"column:view_count;type:integer;default:0;not null"`
 }
 
 func (Post) TableName() string {

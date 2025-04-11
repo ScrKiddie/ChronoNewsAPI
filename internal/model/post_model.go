@@ -24,6 +24,7 @@ type PostResponseWithPreload struct {
 	PublishedDate int64             `json:"publishedDate"`
 	LastUpdated   int64             `json:"lastUpdated"`
 	Thumbnail     string            `json:"thumbnail"`
+	ViewCount     int64             `json:"viewCount"`
 }
 
 type PostGet struct {
@@ -38,6 +39,7 @@ type PostSearch struct {
 	Summary      string
 	Page         int64
 	Size         int64
+	Sort         string
 }
 
 type PostCreate struct {

@@ -76,6 +76,7 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 			PublishedDate: post.PublishedDate,
 			LastUpdated:   post.LastUpdated,
 			Thumbnail:     post.Thumbnail,
+			ViewCount:     post.ViewCount,
 			User: &model.UserResponse{
 				ID:             post.User.ID,
 				Name:           post.User.Name,
@@ -107,12 +108,24 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		return nil, utility.ErrBadRequest
 	}
 
-	db := s.DB.WithContext(ctx)
+	tx := s.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
 
 	post := &entity.Post{}
-	if err := s.PostRepository.FindByID(db, post, request.ID); err != nil {
+	if err := s.PostRepository.FindByID(tx, post, request.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrNotFound
+	}
+
+	post.ViewCount = post.ViewCount + 1
+	if err := s.PostRepository.Update(tx, post); err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrNotFound
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		slog.Error(err.Error())
+		return nil, utility.ErrInternalServer
 	}
 
 	response := &model.PostResponseWithPreload{
@@ -123,6 +136,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		PublishedDate: post.PublishedDate,
 		LastUpdated:   post.LastUpdated,
 		Thumbnail:     post.Thumbnail,
+		ViewCount:     post.ViewCount,
 		User: &model.UserResponse{
 			ID:             post.User.ID,
 			Name:           post.User.Name,

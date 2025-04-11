@@ -29,6 +29,7 @@ func NewPostController(postService *service.PostService) *PostController {
 // @Param userName query string false "User name search query"
 // @Param summary query string false "Summary search query"
 // @Param categoryName query string false "Category name search query"
+// @Param sort query string false "Sort by: view_count, -view_count, published_date, -published_date"
 // @Success 200 {object} utility.PaginationResponse{data=[]model.PostResponseWithPreload,pagination=[]model.Pagination}
 // @Failure 400 {object} utility.ResponseError
 // @Failure 500 {object} utility.ResponseError
@@ -55,6 +56,7 @@ func (c *PostController) Search(w http.ResponseWriter, r *http.Request) {
 		UserName:     r.URL.Query().Get("userName"),
 		Summary:      r.URL.Query().Get("summary"),
 		CategoryName: r.URL.Query().Get("categoryName"),
+		Sort:         r.URL.Query().Get("sort"),
 	}
 	posts, pagination, err := c.PostService.Search(r.Context(), request)
 	if err != nil {

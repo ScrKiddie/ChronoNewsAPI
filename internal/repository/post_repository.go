@@ -50,13 +50,26 @@ func (r *PostRepository) Search(db *gorm.DB, request *model.PostSearch, posts *[
 		query = query.Where("post.user_id = ?", request.UserID)
 	}
 
+	orderMap := map[string]string{
+		"view_count":      "post.view_count ASC",
+		"-view_count":     "post.view_count DESC",
+		"published_date":  "post.published_date ASC",
+		"-published_date": "post.published_date DESC",
+	}
+
+	orderBy := "post.published_date DESC"
+
+	if v, ok := orderMap[request.Sort]; ok {
+		orderBy = v
+	}
+
 	var total int64
 	err := query.Model(&entity.Post{}).Count(&total).Error
 	if err != nil {
 		return 0, err
 	}
 
-	err = query.Order("post.published_date DESC").
+	err = query.Order(orderBy).
 		Limit(int(request.Size)).
 		Offset(int((request.Page - 1) * request.Size)).
 		Find(posts).Error
