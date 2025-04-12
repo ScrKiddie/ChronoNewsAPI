@@ -76,6 +76,8 @@ definitions:
         type: string
       user:
         $ref: '#/definitions/model.UserResponse'
+      viewCount:
+        type: integer
     type: object
   model.ResetEmailRequest:
     properties:
@@ -422,6 +424,18 @@ paths:
         in: query
         name: categoryName
         type: string
+      - description: 'Sort by: view_count, -view_count, published_date, -published_date'
+        in: query
+        name: sort
+        type: string
+      - description: Filter posts published after this date (timestamp)
+        in: query
+        name: startDate
+        type: integer
+      - description: Filter posts published before this date (timestamp)
+        in: query
+        name: endDate
+        type: integer
       produces:
       - application/json
       responses:

@@ -410,6 +410,24 @@ const docTemplate = `{
                         "description": "Category name search query",
                         "name": "categoryName",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by: view_count, -view_count, published_date, -published_date",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter posts published after this date (timestamp)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter posts published before this date (timestamp)",
+                        "name": "endDate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1688,6 +1706,9 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/model.UserResponse"
+                },
+                "viewCount": {
+                    "type": "integer"
                 }
             }
         },

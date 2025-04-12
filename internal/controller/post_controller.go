@@ -30,6 +30,8 @@ func NewPostController(postService *service.PostService) *PostController {
 // @Param summary query string false "Summary search query"
 // @Param categoryName query string false "Category name search query"
 // @Param sort query string false "Sort by: view_count, -view_count, published_date, -published_date"
+// @Param startDate query int false "Filter posts published after this date (timestamp)"
+// @Param endDate query int false "Filter posts published before this date (timestamp)"
 // @Success 200 {object} utility.PaginationResponse{data=[]model.PostResponseWithPreload,pagination=[]model.Pagination}
 // @Failure 400 {object} utility.ResponseError
 // @Failure 500 {object} utility.ResponseError
@@ -47,6 +49,14 @@ func (c *PostController) Search(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		userID = 0
 	}
+	startDate, err := utility.ToInt64(r.URL.Query().Get("startDate"))
+	if err != nil {
+		startDate = 0
+	}
+	endDate, err := utility.ToInt64(r.URL.Query().Get("endDate"))
+	if err != nil {
+		endDate = 0
+	}
 
 	request := &model.PostSearch{
 		Page:         page,
@@ -57,6 +67,8 @@ func (c *PostController) Search(w http.ResponseWriter, r *http.Request) {
 		Summary:      r.URL.Query().Get("summary"),
 		CategoryName: r.URL.Query().Get("categoryName"),
 		Sort:         r.URL.Query().Get("sort"),
+		StartDate:    startDate,
+		EndDate:      endDate,
 	}
 	posts, pagination, err := c.PostService.Search(r.Context(), request)
 	if err != nil {

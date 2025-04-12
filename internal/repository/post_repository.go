@@ -63,6 +63,14 @@ func (r *PostRepository) Search(db *gorm.DB, request *model.PostSearch, posts *[
 		orderBy = v
 	}
 
+	if request.StartDate != 0 && request.EndDate != 0 {
+		query = query.Where("post.published_date BETWEEN ? AND ?", request.StartDate, request.EndDate)
+	} else if request.StartDate != 0 {
+		query = query.Where("post.published_date >= ?", request.StartDate)
+	} else if request.EndDate != 0 {
+		query = query.Where("post.published_date <= ?", request.EndDate)
+	}
+
 	var total int64
 	err := query.Model(&entity.Post{}).Count(&total).Error
 	if err != nil {

@@ -40,6 +40,8 @@ type PostSearch struct {
 	Page         int64
 	Size         int64
 	Sort         string
+	StartDate    int64
+	EndDate      int64
 }
 
 type PostCreate struct {
