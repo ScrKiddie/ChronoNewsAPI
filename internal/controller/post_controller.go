@@ -128,9 +128,10 @@ func (c *PostController) Get(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} utility.ResponseError
 // @Router /api/post [post]
 func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(1 * 1024 * 1024 * 1024)
+	r.Body = http.MaxBytesReader(w, r.Body, 350*1024*1024)
+	err := r.ParseMultipartForm(350 * 1024 * 1024)
 	if err != nil {
-		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, "Request terlalu besar")
+		utility.CreateErrorResponse(w, utility.ErrRequestEntityTooLarge.Code, utility.ErrRequestEntityTooLarge.Message)
 		return
 	}
 
@@ -192,9 +193,10 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} utility.ResponseError
 // @Router /api/post/{id} [put]
 func (c *PostController) Update(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(1 * 1024 * 1024 * 1024)
+	r.Body = http.MaxBytesReader(w, r.Body, 350*1024*1024)
+	err := r.ParseMultipartForm(350 * 1024 * 1024)
 	if err != nil {
-		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, "Request terlalu besar")
+		utility.CreateErrorResponse(w, utility.ErrRequestEntityTooLarge.Code, utility.ErrRequestEntityTooLarge.Message)
 		return
 	}
 

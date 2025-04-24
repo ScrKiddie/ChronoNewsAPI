@@ -6,10 +6,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/chai2010/webp"
 	"github.com/google/uuid"
-	"golang.org/x/image/draw"
+	"github.com/h2non/bimg"
 	"image"
+	"math"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -47,64 +47,58 @@ func Base64ToFile(base64File string) ([]byte, string, error) {
 	return decodedFile, fileName, nil
 }
 
-func ResizeImage(img image.Image) image.Image {
-	bounds := img.Bounds()
-	width, height := bounds.Dx(), bounds.Dy()
-
-	if width <= maxWidth && height <= maxHeight {
-		return img
-	}
-
-	ratio := float64(maxWidth) / float64(width)
-	if float64(height)*ratio > float64(maxHeight) {
-		ratio = float64(maxHeight) / float64(height)
-	}
-
-	newWidth := int(float64(width) * ratio)
-	newHeight := int(float64(height) * ratio)
-	dst := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
-	draw.CatmullRom.Scale(dst, dst.Bounds(), img, bounds, draw.Over, nil)
-
-	return dst
-}
-
 func CompressImage(fileData model.FileData, tempDir string) (string, error) {
-	img, _, err := image.Decode(bytes.NewReader(fileData.File))
+	size, err := bimg.Size(fileData.File)
 	if err != nil {
-		return "", fmt.Errorf("failed to decode image: %v", err)
+		return "", fmt.Errorf("gagal membaca ukuran gambar: %v", err)
 	}
 
-	img = ResizeImage(img)
-
-	outputPath := filepath.Join(tempDir, fileData.Name)
-	tempFile, err := os.Create(outputPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to create temporary file: %v", err)
+	width, height := CalculateOptimalSize(size.Width, size.Height)
+	options := bimg.Options{
+		Type:         bimg.WEBP,
+		Compression:  6,
+		Width:        width,
+		Height:       height,
+		Force:        true,
+		NoAutoRotate: true,
 	}
-	defer tempFile.Close()
 
-	qualityLevels := []float32{90, 70, 40, 20, 10, 5, 0}
-	var imgBuffer bytes.Buffer
+	qualityLevels := []int{80, 70, 50, 30, 20, 10}
+	var outputImage []byte
 
 	for _, quality := range qualityLevels {
-		imgBuffer.Reset()
-		err = webp.Encode(&imgBuffer, img, &webp.Options{Quality: quality})
+		options.Quality = quality
+		outputImage, err = bimg.NewImage(fileData.File).Process(options)
 		if err != nil {
-			return "", fmt.Errorf("failed to compress image: %v", err)
+			return "", fmt.Errorf("gagal memproses gambar: %v", err)
 		}
-		if imgBuffer.Len() < maxSize {
-			_, err = tempFile.Write(imgBuffer.Bytes())
-			if err != nil {
-				return "", fmt.Errorf("failed to save WebP file: %v", err)
-			}
-			return filepath.Base(tempFile.Name()), nil
+
+		if len(outputImage) <= maxSize {
+			break
 		}
 	}
 
-	_, err = tempFile.Write(imgBuffer.Bytes())
+	outputPath := filepath.Join(tempDir, fileData.Name)
+	err = os.WriteFile(outputPath, outputImage, 0644)
 	if err != nil {
-		return "", fmt.Errorf("failed to save WebP file: %v", err)
+		return "", fmt.Errorf("gagal menyimpan file: %v", err)
 	}
 
-	return filepath.Base(tempFile.Name()), nil
+	return filepath.Base(outputPath), nil
+}
+
+func CalculateOptimalSize(originalWidth, originalHeight int) (int, int) {
+	if originalWidth <= maxWidth && originalHeight <= maxHeight {
+		return originalWidth, originalHeight
+	}
+
+	ratio := math.Min(
+		float64(maxWidth)/float64(originalWidth),
+		float64(maxHeight)/float64(originalHeight),
+	)
+
+	newWidth := int(math.Round(float64(originalWidth) * ratio))
+	newHeight := int(math.Round(float64(originalHeight) * ratio))
+
+	return newWidth, newHeight
 }

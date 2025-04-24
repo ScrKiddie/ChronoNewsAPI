@@ -4,18 +4,17 @@ go 1.23.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.2
-	github.com/chai2010/webp v1.1.1
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/go-chi/cors v1.2.1
 	github.com/go-playground/validator/v10 v10.24.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
+	github.com/h2non/bimg v1.1.9
 	github.com/orandin/slog-gorm v1.4.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/spf13/viper v1.19.0
 	github.com/swaggo/swag v1.16.4
 	golang.org/x/crypto v0.33.0
-	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
 )

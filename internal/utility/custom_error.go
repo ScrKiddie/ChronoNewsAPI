@@ -42,4 +42,8 @@ var (
 		Code:    http.StatusForbidden,
 		Message: "Forbidden",
 	}
+	ErrRequestEntityTooLarge = &CustomError{
+		Code:    http.StatusRequestEntityTooLarge,
+		Message: "Request Entity Too Large",
+	}
 )

@@ -7,7 +7,6 @@ import (
 	"chrononewsapi/internal/repository"
 	"chrononewsapi/internal/utility"
 	"context"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
@@ -15,7 +14,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
@@ -180,125 +178,26 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		return nil, utility.ErrNotFound
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(request.Content))
+	newContent, fileNames, _, err := utility.HandleParallelContentProcessing(&request.Content)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}
 
-	var fileDatas []model.FileData
-	var fileNames []string
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-	var once sync.Once
-	errChan := make(chan error, 1)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	startTime := time.Now()
-	// parallel untuk decoding dan validasi file
-	doc.Find("img").Each(func(i int, g *goquery.Selection) {
-		src, exists := g.Attr("src")
-		if exists && strings.HasPrefix(src, "data:image/") {
-			wg.Add(1)
-			go func(src string, g *goquery.Selection) {
-				defer wg.Done()
-
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					file, name, err := utility.Base64ToFile(src)
-					if err != nil {
-						slog.Error(err.Error())
-						once.Do(func() {
-							errChan <- utility.ErrBadRequest
-							cancel()
-						})
-						return
-					}
-					mu.Lock()
-					fileDatas = append(fileDatas, model.FileData{File: file, Name: name})
-					g.SetAttr("src", name)
-					mu.Unlock()
-				}
-			}(src, g)
-		}
-	})
-
-	wg.Wait()
-
-	select {
-	case err := <-errChan:
-		return nil, err
-	default:
-	}
-	utility.LogResourceUsage("proses validasi file", startTime)
-
-	startTime = time.Now() // parallel untuk kompresi file dan write file ke temp dir
-	if len(fileDatas) > 0 {
-		for _, file := range fileDatas {
-			wg.Add(1)
-			go func(file model.FileData) {
-				defer wg.Done()
-
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					name, err := utility.CompressImage(file, os.TempDir())
-					if err != nil {
-						slog.Error(err.Error())
-						once.Do(func() {
-							errChan <- utility.ErrInternalServer
-							cancel()
-						})
-						return
-					}
-
-					mu.Lock()
-					fileNames = append(fileNames, name)
-					mu.Unlock()
-				}
-			}(file)
-		}
-
-		wg.Wait()
-
-		select {
-		case err := <-errChan:
-			return nil, err
-		default:
-		}
-	}
-	utility.LogResourceUsage("proses kompresi file", startTime)
-
-	// defer agar memastikan tempfile dihapus sebelum return
 	defer func() {
-		var wg sync.WaitGroup
 		for _, fileName := range fileNames {
-			wg.Add(1)
 			go func(fileName string) {
-				defer wg.Done()
 				if err := s.StorageAdapter.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
 					slog.Error(err.Error())
 				}
 			}(fileName)
 		}
-		wg.Wait()
 	}()
-
-	newContent, err := doc.Html()
-	if err != nil {
-		slog.Error(err.Error())
-		return nil, utility.ErrInternalServer
-	}
-	request.Content = newContent
 
 	post := &entity.Post{
 		Title:         request.Title,
 		Summary:       request.Summary,
-		Content:       request.Content,
+		Content:       newContent,
 		PublishedDate: time.Now().Unix(),
 		UserID:        request.UserID,
 		CategoryID:    request.CategoryID,
@@ -315,7 +214,6 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 
 	if len(fileNames) > 0 {
 		var fileEntities []entity.File
-
 		for _, fileName := range fileNames {
 			fileEntities = append(fileEntities, entity.File{
 				PostID: post.ID,
@@ -336,38 +234,14 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		}
 	}
 
-	startTime = time.Now()
-	// parallel untuk copy file dari temp dir ke dir utama
 	if len(fileNames) > 0 {
 		for _, fileName := range fileNames {
-			wg.Add(1)
-			go func(fileName string) {
-				defer wg.Done()
-
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					if err := s.StorageAdapter.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
-						slog.Error(err.Error())
-						once.Do(func() {
-							errChan <- utility.ErrInternalServer
-							cancel()
-						})
-					}
-				}
-			}(fileName)
-		}
-
-		wg.Wait()
-
-		select {
-		case err := <-errChan:
-			return nil, err
-		default:
+			if err := s.StorageAdapter.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
+				slog.Error(err.Error())
+				return nil, utility.ErrInternalServer
+			}
 		}
 	}
-	utility.LogResourceUsage("proses penyimpanan file", startTime)
 
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
@@ -417,126 +291,27 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		return nil, utility.ErrNotFound
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(request.Content))
+	newContent, newFileNames, oldFileNames, err := utility.HandleParallelContentProcessing(&request.Content)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}
 
-	var newFileDatas []model.FileData
-	var newFileNames []string
-	var oldFileNames []string
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-	var once sync.Once
-	errChan := make(chan error, 1)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// memproses gambar baru dalam konten
-	doc.Find("img").Each(func(i int, g *goquery.Selection) {
-		src, exists := g.Attr("src")
-		if exists {
-			if strings.HasPrefix(src, "data:image/") {
-				wg.Add(1)
-				go func(src string, g *goquery.Selection) {
-					defer wg.Done()
-
-					select {
-					case <-ctx.Done():
-						return
-					default:
-						file, name, err := utility.Base64ToFile(src)
-						if err != nil {
-							slog.Error(err.Error())
-							once.Do(func() {
-								errChan <- utility.ErrBadRequest
-								cancel()
-							})
-							return
-						}
-						mu.Lock()
-						newFileDatas = append(newFileDatas, model.FileData{File: file, Name: name})
-						g.SetAttr("src", name)
-						mu.Unlock()
-					}
-				}(src, g)
-			} else {
-				oldFileNames = append(oldFileNames, src)
-			}
-		}
-	})
-
-	wg.Wait()
-
-	select {
-	case err := <-errChan:
-		return nil, err
-	default:
-	}
-
-	// kompresi gambar baru
-	if len(newFileDatas) > 0 {
-		for _, file := range newFileDatas {
-			wg.Add(1)
-			go func(file model.FileData) {
-				defer wg.Done()
-
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					name, err := utility.CompressImage(file, os.TempDir())
-					if err != nil {
-						slog.Error(err.Error())
-						once.Do(func() {
-							errChan <- utility.ErrInternalServer
-							cancel()
-						})
-						return
-					}
-					mu.Lock()
-					newFileNames = append(newFileNames, name)
-					mu.Unlock()
-				}
-			}(file)
-		}
-
-		wg.Wait()
-
-		select {
-		case err := <-errChan:
-			return nil, err
-		default:
-		}
-	}
-	// defer agar memastikan tempfile dihapus sebelum return
+	// defer untuk delete temp file
 	defer func() {
-		var wg sync.WaitGroup
-		for _, newFileName := range newFileNames {
-			wg.Add(1)
+		for _, fileName := range newFileNames {
 			go func(fileName string) {
-				defer wg.Done()
 				if err := s.StorageAdapter.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
 					slog.Error(err.Error())
 				}
-			}(newFileName)
+			}(fileName)
 		}
-		wg.Wait()
 	}()
 
-	newContent, err := doc.Html()
-	if err != nil {
-		slog.Error(err.Error())
-		return nil, utility.ErrInternalServer
-	}
-	request.Content = newContent
-
 	oldThumbnail := post.Thumbnail
-
 	post.Title = request.Title
 	post.Summary = request.Summary
-	post.Content = request.Content
+	post.Content = newContent
 	post.LastUpdated = time.Now().Unix()
 	post.CategoryID = request.CategoryID
 
@@ -549,6 +324,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	if request.DeleteThumbnail {
 		post.Thumbnail = ""
 	}
+
 	if request.Thumbnail != nil {
 		post.Thumbnail = utility.CreateFileName(request.Thumbnail)
 	}
@@ -558,16 +334,15 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		return nil, utility.ErrInternalServer
 	}
 
-	// ambil daftar file yang tidak lagi digunakan
 	unusedFiles, err := s.FileRepository.FindUnusedFile(tx, post.ID, append(oldFileNames, newFileNames...))
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}
 
-	// hapus file yang tidak digunakan
 	if len(unusedFiles) > 0 {
 		var unusedFileNames []string
+
 		for _, file := range unusedFiles {
 			unusedFileNames = append(unusedFileNames, file.Name)
 		}
@@ -578,37 +353,14 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 			return nil, utility.ErrInternalServer
 		}
 
-		// hapus file dari sistem penyimpanan
 		for _, file := range unusedFiles {
-			wg.Add(1)
-			go func(file entity.File) {
-				defer wg.Done()
-
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + file.Name); err != nil {
-						slog.Error(err.Error())
-						once.Do(func() {
-							errChan <- utility.ErrInternalServer
-							cancel()
-						})
-					}
-				}
-			}(file)
-		}
-
-		wg.Wait()
-
-		select {
-		case err := <-errChan:
-			return nil, err
-		default:
+			if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + file.Name); err != nil {
+				slog.Error(err.Error())
+				return nil, utility.ErrInternalServer
+			}
 		}
 	}
 
-	// simpan file baru ke database
 	if len(newFileNames) > 0 {
 		var fileEntities []entity.File
 		for _, fileName := range newFileNames {
@@ -617,7 +369,6 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 				Name:   fileName,
 			})
 		}
-
 		if err := tx.Create(&fileEntities).Error; err != nil {
 			slog.Error(err.Error())
 			return nil, utility.ErrInternalServer
@@ -630,7 +381,6 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		}
 	}
 
-	// simpan thumbnail baru
 	if request.Thumbnail != nil {
 		if err := s.StorageAdapter.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
 			slog.Error(err.Error())
@@ -638,34 +388,12 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		}
 	}
 
-	// pindahkan file baru dari temp ke direktori utama
 	if len(newFileNames) > 0 {
 		for _, fileName := range newFileNames {
-			wg.Add(1)
-			go func(fileName string) {
-				defer wg.Done()
-
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					if err := s.StorageAdapter.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
-						slog.Error(err.Error())
-						once.Do(func() {
-							errChan <- utility.ErrInternalServer
-							cancel()
-						})
-					}
-				}
-			}(fileName)
-		}
-
-		wg.Wait()
-
-		select {
-		case err := <-errChan:
-			return nil, err
-		default:
+			if err := s.StorageAdapter.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
+				slog.Error(err.Error())
+				return nil, utility.ErrInternalServer
+			}
 		}
 	}
 
