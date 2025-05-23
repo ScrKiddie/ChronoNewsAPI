@@ -7,6 +7,7 @@ import (
 	"chrononewsapi/internal/repository"
 	"chrononewsapi/internal/utility"
 	"context"
+	"embed"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
@@ -316,6 +317,9 @@ func (s *UserService) Get(ctx context.Context, request *model.UserGet, auth *mod
 	}, nil
 }
 
+//go:embed template/registered_user_email.html
+var registeredUserTemplate embed.FS
+
 func (s *UserService) Create(ctx context.Context, request *model.UserCreate, auth *model.Auth) (*model.UserResponse, error) {
 	tx := s.DB.WithContext(ctx).Begin()
 	defer tx.Rollback()
@@ -375,7 +379,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 		Expired:         s.Config.GetInt("reset.exp"),
 	}
 
-	bodyContent, err := utility.GenerateEmailBody("./internal/template/registered_user_email.html", emailBody)
+	bodyContent, err := utility.GenerateEmailBody(registeredUserTemplate, "template/registered_user_email.html", emailBody)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer

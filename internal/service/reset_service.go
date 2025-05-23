@@ -7,6 +7,7 @@ import (
 	"chrononewsapi/internal/repository"
 	"chrononewsapi/internal/utility"
 	"context"
+	"embed"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
@@ -45,6 +46,9 @@ func NewResetService(
 		Config:          config,
 	}
 }
+
+//go:embed template/reset_password_email.html
+var resetPasswordTemplate embed.FS
 
 func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmailRequest) error {
 	if err := s.Validator.Struct(request); err != nil {
@@ -105,7 +109,7 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 		Expired:         s.Config.GetInt("reset.exp"),
 	}
 
-	bodyContent, err := utility.GenerateEmailBody("./internal/template/reset_password_email.html", emailBody)
+	bodyContent, err := utility.GenerateEmailBody(resetPasswordTemplate, "template/reset_password_email.html", emailBody)
 	if err != nil {
 		slog.Error(err.Error())
 		return utility.ErrInternalServer
