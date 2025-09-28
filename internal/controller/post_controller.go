@@ -4,9 +4,10 @@ import (
 	"chrononewsapi/internal/model"
 	"chrononewsapi/internal/service"
 	"chrononewsapi/internal/utility"
-	"github.com/go-chi/chi/v5"
 	"log/slog"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type PostController struct {
@@ -29,7 +30,7 @@ func NewPostController(postService *service.PostService) *PostController {
 // @Param userName query string false "User name search query"
 // @Param summary query string false "Summary search query"
 // @Param categoryName query string false "Category name search query"
-// @Param sort query string false "Sort by: view_count, -view_count, published_date, -published_date"
+// @Param sort query string false "Sort by: view_count, -view_count, created_at, -created_at"
 // @Param startDate query int false "Filter posts published after this date (timestamp)"
 // @Param endDate query int false "Filter posts published before this date (timestamp)"
 // @Success 200 {object} utility.PaginationResponse{data=[]model.PostResponseWithPreload,pagination=[]model.Pagination}
@@ -108,6 +109,37 @@ func (c *PostController) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utility.CreateSuccessResponse(w, http.StatusOK, post)
+}
+
+// IncrementViewCount handles incrementing the view count of a post
+// @Summary Increment post view count
+// @Description Increment the view count for a specific post by its ID
+// @Tags Post
+// @Produce json
+// @Param id path int true "Post ID"
+// @Success 200 {object} utility.ResponseSuccess
+// @Failure 400 {object} utility.ResponseError
+// @Failure 404 {object} utility.ResponseError
+// @Failure 500 {object} utility.ResponseError
+// @Router /api/post/{id}/view [patch]
+func (c *PostController) IncrementViewCount(w http.ResponseWriter, r *http.Request) {
+	id, err := utility.ToInt32(chi.URLParam(r, "id"))
+	if err != nil {
+		slog.Error(err.Error())
+		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
+		return
+	}
+
+	request := &model.PostIncrementView{ID: id}
+
+	err = c.PostService.IncrementViewCount(r.Context(), request)
+	if err != nil {
+		customErr := err.(*utility.CustomError)
+		utility.CreateErrorResponse(w, customErr.Code, customErr.Message)
+		return
+	}
+
+	utility.CreateSuccessResponse(w, http.StatusOK, "View count incremented successfully")
 }
 
 // Create handles creating a new post

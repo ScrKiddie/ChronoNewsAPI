@@ -1,13 +1,9 @@
 package entity
 
-import (
-	"time"
-)
-
 type File struct {
-	ID             int32 `gorm:"column:id;primaryKey;type:integer;autoIncrement;not null"`
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID             int32   `gorm:"column:id;primaryKey;type:integer;autoIncrement;not null"`
+	CreatedAt      int64   `gorm:"column:created_at;autoCreateTime:unixtime"`
+	UpdatedAt      int64   `gorm:"column:updated_at;autoCreateTime:unixtime;autoUpdateTime:unixtime"`
 	Name           string  `gorm:"column:name;type:varchar(255);index"`
 	Status         string  `gorm:"column:status;type:file_status;default:'pending';index"`
 	FailedAttempts int     `gorm:"column:failed_attempts;default:0"`
@@ -17,13 +13,13 @@ type File struct {
 }
 
 func (File) TableName() string {
-	return "file" // Singular (konsisten dengan 'user')
+	return "file"
 }
 
 type DeadLetterQueue struct {
-	ID           int32 `gorm:"column:id;primaryKey;type:integer;autoIncrement;not null"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID           int32  `gorm:"column:id;primaryKey;type:integer;autoIncrement;not null"`
+	CreatedAt    int64  `gorm:"column:created_at;autoCreateTime:unixtime"`
+	UpdatedAt    int64  `gorm:"column:updated_at;autoCreateTime:unixtime;autoUpdateTime:unixtime"`
 	FileID       int32  `gorm:"column:file_id"`
 	File         File   `gorm:"foreignKey:FileID"`
 	ErrorMessage string `gorm:"column:error_message;type:varchar(255)"`

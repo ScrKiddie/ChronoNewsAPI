@@ -474,7 +474,7 @@ paths:
         in: query
         name: categoryName
         type: string
-      - description: 'Sort by: view_count, -view_count, published_date, -published_date'
+      - description: 'Sort by: view_count, -view_count, created_at, -created_at'
         in: query
         name: sort
         type: string
@@ -719,6 +719,37 @@ paths:
           schema:
             $ref: '#/definitions/utility.ResponseError'
       summary: Update an existing post
+      tags:
+      - Post
+  /api/post/{id}/view:
+    patch:
+      description: Increment the view count for a specific post by its ID
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utility.ResponseSuccess'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utility.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utility.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utility.ResponseError'
+      summary: Increment post view count
       tags:
       - Post
   /api/reset/email:

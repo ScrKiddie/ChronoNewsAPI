@@ -31,6 +31,10 @@ type PostGet struct {
 	ID int32 `validate:"required"`
 }
 
+type PostIncrementView struct {
+	ID int32 `validate:"required"`
+}
+
 type PostSearch struct {
 	UserID       int32
 	Title        string

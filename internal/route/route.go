@@ -3,8 +3,9 @@ package route
 import (
 	"chrononewsapi/internal/controller"
 	"chrononewsapi/internal/middleware"
-	"github.com/go-chi/chi/v5"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type Route struct {
@@ -23,6 +24,7 @@ func (r *Route) Setup() {
 			guest.Post("/user/login", r.UserController.Login)
 			guest.Get("/post", r.PostController.Search)
 			guest.Get("/post/{id}", r.PostController.Get)
+			guest.Patch("/post/{id}/view", r.PostController.IncrementViewCount)
 			guest.Get("/category", r.CategoryController.List)
 			guest.Post("/reset/request", r.ResetController.RequestResetEmail)
 			guest.Patch("/reset", r.ResetController.Reset)

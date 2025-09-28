@@ -471,7 +471,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Sort by: view_count, -view_count, published_date, -published_date",
+                        "description": "Sort by: view_count, -view_count, created_at, -created_at",
                         "name": "sort",
                         "in": "query"
                     },
@@ -813,6 +813,53 @@
                         "in": "header",
                         "required": true
                     },
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utility.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utility.ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utility.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utility.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/{id}/view": {
+            "patch": {
+                "description": "Increment the view count for a specific post by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Post"
+                ],
+                "summary": "Increment post view count",
+                "parameters": [
                     {
                         "type": "integer",
                         "description": "Post ID",

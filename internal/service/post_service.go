@@ -103,17 +103,10 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		return nil, utility.ErrBadRequest
 	}
 
-	tx := s.DB.WithContext(ctx).Begin()
-	defer tx.Rollback()
+	db := s.DB.WithContext(ctx)
 
 	post := &entity.Post{}
-	if err := s.PostRepository.FindByID(tx, post, request.ID); err != nil {
-		slog.Error(err.Error())
-		return nil, utility.ErrNotFound
-	}
-
-	post.ViewCount = post.ViewCount + 1
-	if err := s.PostRepository.Update(tx, post); err != nil {
+	if err := s.PostRepository.FindByID(db, post, request.ID); err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrNotFound
 	}
@@ -123,16 +116,11 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		slog.Error("Failed to extract file IDs from content", "error", err)
 		return nil, utility.ErrInternalServer
 	}
-	fileMap := s.FileRepository.FindAsMap(tx, fileIDs)
+	fileMap := s.FileRepository.FindAsMap(db, fileIDs)
 
 	rebuiltContent, err := utility.RebuildContentWithImageSrc(post.Content, fileMap)
 	if err != nil {
 		slog.Error("Failed to rebuild content with image src", "error", err)
-		return nil, utility.ErrInternalServer
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}
 
@@ -160,6 +148,35 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 	}
 
 	return response, nil
+}
+
+func (s *PostService) IncrementViewCount(ctx context.Context, request *model.PostIncrementView) error {
+	if err := s.Validator.Struct(request); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrBadRequest
+	}
+
+	tx := s.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	post := &entity.Post{}
+	if err := s.PostRepository.FindByID(tx, post, request.ID); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrNotFound
+	}
+
+	post.ViewCount = post.ViewCount + 1
+	if err := s.PostRepository.Update(tx, post); err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServer
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		slog.Error(err.Error())
+		return utility.ErrInternalServer
+	}
+
+	return nil
 }
 
 func (s *PostService) Create(ctx context.Context, request *model.PostCreate, auth *model.Auth) (*model.PostResponse, error) {

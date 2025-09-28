@@ -3,8 +3,9 @@ package repository
 import (
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
-	"gorm.io/gorm"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 type PostRepository struct {
@@ -51,24 +52,24 @@ func (r *PostRepository) Search(db *gorm.DB, request *model.PostSearch, posts *[
 	}
 
 	orderMap := map[string]string{
-		"view_count":      "post.view_count ASC",
-		"-view_count":     "post.view_count DESC",
-		"published_date":  "post.published_date ASC",
-		"-published_date": "post.published_date DESC",
+		"view_count":  "post.view_count ASC",
+		"-view_count": "post.view_count DESC",
+		"created_at":  "post.created_at ASC",
+		"-created_at": "post.created_at DESC",
 	}
 
-	orderBy := "post.published_date DESC"
+	orderBy := "post.created_at DESC"
 
 	if v, ok := orderMap[request.Sort]; ok {
 		orderBy = v
 	}
 
 	if request.StartDate != 0 && request.EndDate != 0 {
-		query = query.Where("post.published_date BETWEEN ? AND ?", request.StartDate, request.EndDate)
+		query = query.Where("post.created_at BETWEEN ? AND ?", request.StartDate, request.EndDate)
 	} else if request.StartDate != 0 {
-		query = query.Where("post.published_date >= ?", request.StartDate)
+		query = query.Where("post.created_at >= ?", request.StartDate)
 	} else if request.EndDate != 0 {
-		query = query.Where("post.published_date <= ?", request.EndDate)
+		query = query.Where("post.created_at <= ?", request.EndDate)
 	}
 
 	var total int64
