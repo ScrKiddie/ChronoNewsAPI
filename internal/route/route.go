@@ -14,6 +14,7 @@ type Route struct {
 	CategoryController *controller.CategoryController
 	PostController     *controller.PostController
 	ResetController    *controller.ResetController
+	FileController     *controller.FileController
 }
 
 func (r *Route) Setup() {
@@ -46,6 +47,8 @@ func (r *Route) Setup() {
 			auth.Post("/post", r.PostController.Create)
 			auth.Put("/post/{id}", r.PostController.Update)
 			auth.Delete("/post/{id}", r.PostController.Delete)
+
+			auth.Post("/image", r.FileController.UploadImage)
 		})
 	})
 	r.App.Handle("/profile_picture/*", http.StripPrefix("/profile_picture/", http.FileServer(http.Dir("./storage/profile_picture/"))))

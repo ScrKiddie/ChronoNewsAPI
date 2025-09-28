@@ -1,5 +1,10 @@
 package constant
 
-const Admin = "admin"
-const Journalist = "journalist"
-const User = "user"
+const (
+	Admin      = "admin"
+	Journalist = "journalist"
+)
+
+const (
+	FileStatusPending string = "pending"
+)

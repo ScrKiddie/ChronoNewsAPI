@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/go-playground/validator/v10"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
@@ -14,6 +13,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/go-playground/validator/v10"
 )
 
 func NewValidator() *validator.Validate {
@@ -45,23 +46,29 @@ func ExclusiveOr(fl validator.FieldLevel) bool {
 
 func Image(fl validator.FieldLevel) bool {
 
-	allowedExtensions := []string{".png", ".jpg", ".jpeg"}
-	allowedContentTypes := []string{"image/png", "image/jpeg"}
-	var maxSize int64 = 2 * 1024 * 1024
+	allowedExtensions := []string{".png", ".jpg", ".jpeg", ".jpe", ".jfif", ".jif", ".jfi"}
+	allowedContentTypes := []string{"image/png", "image/jpeg", "image/pjpeg", "image/apng"}
+	var defaultMaxSize int64 = 2
 
 	defaultMaxWidth, defaultMaxHeight := 800, 800
 
 	params := fl.Param()
 	maxWidth, maxHeight := defaultMaxWidth, defaultMaxHeight
+	maxSize := defaultMaxSize
 
 	if params != "" {
 		parts := strings.Split(params, "_")
-		if len(parts) == 2 {
+		if len(parts) >= 2 {
 			if w, err := strconv.Atoi(parts[0]); err == nil {
 				maxWidth = w
 			}
 			if h, err := strconv.Atoi(parts[1]); err == nil {
 				maxHeight = h
+			}
+			if len(parts) == 3 {
+				if s, err := strconv.ParseInt(parts[2], 10, 64); err == nil {
+					maxSize = s
+				}
 			}
 		}
 	}
@@ -71,7 +78,7 @@ func Image(fl validator.FieldLevel) bool {
 		return false
 	}
 
-	if file.Size > maxSize {
+	if file.Size > maxSize*1024*1024 {
 		return false
 	}
 
@@ -116,7 +123,7 @@ func Image(fl validator.FieldLevel) bool {
 		return false
 	}
 
-	if img.Width != maxWidth || img.Height != maxHeight {
+	if img.Width > maxWidth || img.Height > maxHeight {
 		return false
 	}
 

@@ -28,7 +28,7 @@ type UserUpdateProfile struct {
 	Name                 string                `validate:"required,min=3,max=255"`
 	PhoneNumber          string                `validate:"required,max=20"`
 	Email                string                `validate:"required,email,max=255"`
-	ProfilePicture       *multipart.FileHeader `validate:"omitempty,image"`
+	ProfilePicture       *multipart.FileHeader `validate:"omitempty,image=800_800_2"`
 	DeleteProfilePicture bool
 }
 
@@ -51,7 +51,7 @@ type UserCreate struct {
 	Name           string                `validate:"required,min=3,max=255"`
 	PhoneNumber    string                `validate:"required,max=20"`
 	Email          string                `validate:"required,email,max=255"`
-	ProfilePicture *multipart.FileHeader `validate:"omitempty,image"`
+	ProfilePicture *multipart.FileHeader `validate:"omitempty,image=800_800_2"`
 	Role           string                `validate:"required,oneof=admin journalist"`
 }
 
@@ -60,7 +60,7 @@ type UserUpdate struct {
 	Name                 string                `validate:"required,min=3,max=255"`
 	PhoneNumber          string                `validate:"required,max=20"`
 	Email                string                `validate:"required,email,max=255"`
-	ProfilePicture       *multipart.FileHeader `validate:"omitempty,image"`
+	ProfilePicture       *multipart.FileHeader `validate:"omitempty,image=800_800_2"`
 	Password             string                `validate:"omitempty,passwordformat,min=8,max=255"`
 	Role                 string                `validate:"required,oneof=admin journalist"`
 	DeleteProfilePicture bool

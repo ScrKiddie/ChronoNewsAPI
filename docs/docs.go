@@ -355,6 +355,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/image": {
+            "post": {
+                "description": "Upload an image to be used in post content",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Upload an image",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Image file to upload",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utility.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.ImageUploadResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utility.ResponseError"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/utility.ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utility.ResponseError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/post": {
             "get": {
                 "description": "Search posts with various filtering options",
@@ -1628,6 +1697,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ImageUploadResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "model.Pagination": {
             "type": "object",
             "properties": {
@@ -1654,13 +1734,10 @@ const docTemplate = `{
                 "content": {
                     "type": "string"
                 },
+                "createdAt": {
+                    "type": "integer"
+                },
                 "id": {
-                    "type": "integer"
-                },
-                "lastUpdated": {
-                    "type": "integer"
-                },
-                "publishedDate": {
                     "type": "integer"
                 },
                 "summary": {
@@ -1671,6 +1748,9 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                },
+                "updatedAt": {
+                    "type": "integer"
                 },
                 "userID": {
                     "type": "integer"
@@ -1686,13 +1766,10 @@ const docTemplate = `{
                 "content": {
                     "type": "string"
                 },
+                "createdAt": {
+                    "type": "integer"
+                },
                 "id": {
-                    "type": "integer"
-                },
-                "lastUpdated": {
-                    "type": "integer"
-                },
-                "publishedDate": {
                     "type": "integer"
                 },
                 "summary": {
@@ -1703,6 +1780,9 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                },
+                "updatedAt": {
+                    "type": "integer"
                 },
                 "user": {
                     "$ref": "#/definitions/model.UserResponse"

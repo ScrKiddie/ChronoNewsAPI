@@ -2,6 +2,7 @@ package repository
 
 import (
 	"chrononewsapi/internal/entity"
+
 	"gorm.io/gorm"
 )
 
@@ -13,38 +14,41 @@ func NewFileRepository() *FileRepository {
 	return &FileRepository{}
 }
 
-func (r *FileRepository) FindByPostId(db *gorm.DB, file *[]entity.File, postId int32) error {
-	return db.Where("post_id = ?", postId).Find(file).Error
-}
-
-func (r *FileRepository) FindUnusedFile(db *gorm.DB, postId int32, keepFileNames []string) ([]entity.File, error) {
-	var unusedFiles []entity.File
-
-	if len(keepFileNames) == 0 {
-		err := db.Where("post_id = ?", postId).Find(&unusedFiles).Error
-		if err != nil {
-			return nil, err
-		}
-		return unusedFiles, nil
-	}
-
-	err := db.Where("post_id = ? AND name NOT IN ?", postId, keepFileNames).Find(&unusedFiles).Error
+func (r *FileRepository) FindByID(db *gorm.DB, id int32) (*entity.File, error) {
+	var file entity.File
+	err := db.First(&file, id).Error
 	if err != nil {
 		return nil, err
 	}
-
-	return unusedFiles, nil
+	return &file, nil
 }
 
-func (r *FileRepository) DeleteUnusedFile(db *gorm.DB, postId int32, fileNames []string) error {
-	if len(fileNames) == 0 {
+func (r *FileRepository) FindAsMap(db *gorm.DB, ids []int32) map[int32]*entity.File {
+	fileMap := make(map[int32]*entity.File)
+	if len(ids) == 0 {
+		return fileMap
+	}
+
+	var files []entity.File
+	db.Where("id IN ?", ids).Find(&files)
+
+	for i := range files {
+		fileMap[int32(files[i].ID)] = &files[i]
+	}
+
+	return fileMap
+}
+
+func (r *FileRepository) LinkFilesToPost(db *gorm.DB, fileIDs []int32, postID int32) error {
+	if len(fileIDs) == 0 {
 		return nil
 	}
+	return db.Model(&entity.File{}).Where("id IN ?", fileIDs).Update("used_by_post_id", postID).Error
+}
 
-	err := db.Where("post_id = ? AND name IN ?", postId, fileNames).Delete(&entity.File{}).Error
-	if err != nil {
-		return err
+func (r *FileRepository) UnlinkUnusedFiles(db *gorm.DB, postID int32, usedFileIDs []int32) error {
+	if len(usedFileIDs) == 0 {
+		return db.Model(&entity.File{}).Where("used_by_post_id = ?", postID).Update("used_by_post_id", nil).Error
 	}
-
-	return nil
+	return db.Model(&entity.File{}).Where("used_by_post_id = ? AND id NOT IN ?", postID, usedFileIDs).Update("used_by_post_id", nil).Error
 }

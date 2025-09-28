@@ -1,10 +1,12 @@
 package model
 
-type File struct {
-	Name string
+import "mime/multipart"
+
+type FileUpload struct {
+	File *multipart.FileHeader `validate:"required,image=16383_16383_10"`
 }
 
-type FileData struct {
-	File []byte
-	Name string
+type ImageUploadResponse struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
 }

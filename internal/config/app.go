@@ -7,11 +7,12 @@ import (
 	"chrononewsapi/internal/repository"
 	"chrononewsapi/internal/route"
 	"chrononewsapi/internal/service"
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 type BootstrapConfig struct {
@@ -40,16 +41,18 @@ func Bootstrap(b *BootstrapConfig) {
 	categoryService := service.NewCategoryService(b.DB, categoryRepository, userRepository, postRepository, b.Validator)
 	postService := service.NewPostService(b.DB, postRepository, userRepository, fileRepository, categoryRepository, storageAdapter, b.Validator, b.Config)
 	resetService := service.NewResetService(b.DB, resetRepository, userRepository, emailAdapter, captchaAdapter, b.Validator, b.Config)
+	fileService := service.NewFileService(b.DB, fileRepository, storageAdapter, b.Config, b.Validator)
 
 	//controller
 	userController := controller.NewUserController(userService)
 	categoryController := controller.NewCategoryController(categoryService)
 	postController := controller.NewPostController(postService)
 	resetController := controller.NewResetController(resetService)
+	fileController := controller.NewFileController(fileService)
 
 	//middleware
 	userMiddleware := middleware.NewUserMiddleware(userService)
 
-	router := route.Route{App: b.App, UserController: userController, UserMiddleware: userMiddleware, CategoryController: categoryController, PostController: postController, ResetController: resetController}
+	router := route.Route{App: b.App, UserController: userController, UserMiddleware: userMiddleware, CategoryController: categoryController, PostController: postController, ResetController: resetController, FileController: fileController}
 	router.Setup()
 }

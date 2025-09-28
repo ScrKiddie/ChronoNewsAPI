@@ -24,6 +24,13 @@ definitions:
     required:
     - name
     type: object
+  model.ImageUploadResponse:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   model.Pagination:
     properties:
       page:
@@ -41,11 +48,9 @@ definitions:
         type: integer
       content:
         type: string
+      createdAt:
+        type: integer
       id:
-        type: integer
-      lastUpdated:
-        type: integer
-      publishedDate:
         type: integer
       summary:
         type: string
@@ -53,6 +58,8 @@ definitions:
         type: string
       title:
         type: string
+      updatedAt:
+        type: integer
       userID:
         type: integer
     type: object
@@ -62,11 +69,9 @@ definitions:
         $ref: '#/definitions/model.CategoryResponse'
       content:
         type: string
+      createdAt:
+        type: integer
       id:
-        type: integer
-      lastUpdated:
-        type: integer
-      publishedDate:
         type: integer
       summary:
         type: string
@@ -74,6 +79,8 @@ definitions:
         type: string
       title:
         type: string
+      updatedAt:
+        type: integer
       user:
         $ref: '#/definitions/model.UserResponse'
       viewCount:
@@ -389,6 +396,49 @@ paths:
       summary: Update a category
       tags:
       - Category
+  /api/image:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload an image to be used in post content
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Image file to upload
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utility.ResponseSuccess'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ImageUploadResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utility.ResponseError'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/utility.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utility.ResponseError'
+      summary: Upload an image
+      tags:
+      - File
   /api/post:
     get:
       description: Search posts with various filtering options

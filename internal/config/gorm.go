@@ -4,12 +4,13 @@ import (
 	"chrononewsapi/internal/entity"
 	"context"
 	"fmt"
+	"log"
+	"time"
+
 	slogGorm "github.com/orandin/slog-gorm"
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
-	"time"
 )
 
 func NewDatabase(config *viper.Viper) *gorm.DB {
@@ -48,7 +49,18 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
     DO $$ 
     BEGIN 
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_type') THEN 
-            CREATE TYPE user_type AS ENUM ('admin','journalist','user');
+            CREATE TYPE user_type AS ENUM ('admin','journalist');
+        END IF;
+    END $$;
+	`).Error; err != nil {
+		return err
+	}
+
+	if err := tx.Exec(`
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'file_status') THEN
+            CREATE TYPE file_status AS ENUM ('pending','processing','compressed','failed');
         END IF;
     END $$;
 	`).Error; err != nil {

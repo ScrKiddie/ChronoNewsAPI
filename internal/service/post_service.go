@@ -7,15 +7,12 @@ import (
 	"chrononewsapi/internal/repository"
 	"chrononewsapi/internal/utility"
 	"context"
+	"log/slog"
+	"math"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
-	"log/slog"
-	"math"
-	"os"
-	"path/filepath"
-	"sync"
-	"time"
 )
 
 type PostService struct {
@@ -68,13 +65,13 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 	var response []model.PostResponseWithPreload
 	for _, post := range posts {
 		response = append(response, model.PostResponseWithPreload{
-			ID:            post.ID,
-			Title:         post.Title,
-			Summary:       post.Summary,
-			PublishedDate: post.PublishedDate,
-			LastUpdated:   post.LastUpdated,
-			Thumbnail:     post.Thumbnail,
-			ViewCount:     post.ViewCount,
+			ID:        post.ID,
+			Title:     post.Title,
+			Summary:   post.Summary,
+			CreatedAt: post.CreatedAt,
+			UpdatedAt: post.UpdatedAt,
+			Thumbnail: post.Thumbnail,
+			ViewCount: post.ViewCount,
 			User: &model.UserResponse{
 				ID:             post.User.ID,
 				Name:           post.User.Name,
@@ -121,20 +118,33 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		return nil, utility.ErrNotFound
 	}
 
+	fileIDs, err := utility.ExtractFileIDsFromContent(post.Content)
+	if err != nil {
+		slog.Error("Failed to extract file IDs from content", "error", err)
+		return nil, utility.ErrInternalServer
+	}
+	fileMap := s.FileRepository.FindAsMap(tx, fileIDs)
+
+	rebuiltContent, err := utility.RebuildContentWithImageSrc(post.Content, fileMap)
+	if err != nil {
+		slog.Error("Failed to rebuild content with image src", "error", err)
+		return nil, utility.ErrInternalServer
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}
 
 	response := &model.PostResponseWithPreload{
-		ID:            post.ID,
-		Title:         post.Title,
-		Summary:       post.Summary,
-		Content:       post.Content,
-		PublishedDate: post.PublishedDate,
-		LastUpdated:   post.LastUpdated,
-		Thumbnail:     post.Thumbnail,
-		ViewCount:     post.ViewCount,
+		ID:        post.ID,
+		Title:     post.Title,
+		Summary:   post.Summary,
+		CreatedAt: post.CreatedAt,
+		UpdatedAt: post.UpdatedAt,
+		Content:   rebuiltContent,
+		ViewCount: post.ViewCount,
+		Thumbnail: post.Thumbnail,
 		User: &model.UserResponse{
 			ID:             post.User.ID,
 			Name:           post.User.Name,
@@ -178,29 +188,24 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		return nil, utility.ErrNotFound
 	}
 
-	newContent, fileNames, _, err := utility.HandleParallelContentProcessing(&request.Content)
+	fileIDs, err := utility.ExtractFileIDsFromContent(request.Content)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse content for file IDs", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
-	defer func() {
-		for _, fileName := range fileNames {
-			go func(fileName string) {
-				if err := s.StorageAdapter.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
-					slog.Error(err.Error())
-				}
-			}(fileName)
-		}
-	}()
+	sanitizedContent, err := utility.StripImageSrcFromContent(request.Content)
+	if err != nil {
+		slog.Error("Failed to strip image src from content", "error", err)
+		return nil, utility.ErrInternalServer
+	}
 
 	post := &entity.Post{
-		Title:         request.Title,
-		Summary:       request.Summary,
-		Content:       newContent,
-		PublishedDate: time.Now().Unix(),
-		UserID:        request.UserID,
-		CategoryID:    request.CategoryID,
+		Title:      request.Title,
+		Summary:    request.Summary,
+		Content:    sanitizedContent,
+		UserID:     request.UserID,
+		CategoryID: request.CategoryID,
 	}
 
 	if request.Thumbnail != nil {
@@ -212,19 +217,9 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		return nil, utility.ErrInternalServer
 	}
 
-	if len(fileNames) > 0 {
-		var fileEntities []entity.File
-		for _, fileName := range fileNames {
-			fileEntities = append(fileEntities, entity.File{
-				PostID: post.ID,
-				Name:   fileName,
-			})
-		}
-
-		if err := tx.Create(&fileEntities).Error; err != nil {
-			slog.Error(err.Error())
-			return nil, utility.ErrInternalServer
-		}
+	if err := s.FileRepository.LinkFilesToPost(tx, fileIDs, post.ID); err != nil {
+		slog.Error("Failed to link files to post", "error", err)
+		return nil, utility.ErrInternalServer
 	}
 
 	if request.Thumbnail != nil {
@@ -234,30 +229,21 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		}
 	}
 
-	if len(fileNames) > 0 {
-		for _, fileName := range fileNames {
-			if err := s.StorageAdapter.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
-				slog.Error(err.Error())
-				return nil, utility.ErrInternalServer
-			}
-		}
-	}
-
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}
 
 	response := &model.PostResponse{
-		ID:            post.ID,
-		CategoryID:    post.CategoryID,
-		UserID:        post.UserID,
-		Title:         post.Title,
-		Summary:       post.Summary,
-		Content:       post.Content,
-		PublishedDate: post.PublishedDate,
-		LastUpdated:   post.LastUpdated,
-		Thumbnail:     post.Thumbnail,
+		ID:         post.ID,
+		CategoryID: post.CategoryID,
+		UserID:     post.UserID,
+		Title:      post.Title,
+		Summary:    post.Summary,
+		Content:    post.Content,
+		CreatedAt:  post.CreatedAt,
+		UpdatedAt:  post.UpdatedAt,
+		Thumbnail:  post.Thumbnail,
 	}
 
 	return response, nil
@@ -291,28 +277,22 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		return nil, utility.ErrNotFound
 	}
 
-	newContent, newFileNames, oldFileNames, err := utility.HandleParallelContentProcessing(&request.Content)
+	currentFileIDs, err := utility.ExtractFileIDsFromContent(request.Content)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse content for file IDs", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
-	// defer untuk delete temp file
-	defer func() {
-		for _, fileName := range newFileNames {
-			go func(fileName string) {
-				if err := s.StorageAdapter.Delete(filepath.Join(os.TempDir(), fileName)); err != nil {
-					slog.Error(err.Error())
-				}
-			}(fileName)
-		}
-	}()
+	sanitizedContent, err := utility.StripImageSrcFromContent(request.Content)
+	if err != nil {
+		slog.Error("Failed to strip image src from content", "error", err)
+		return nil, utility.ErrInternalServer
+	}
 
 	oldThumbnail := post.Thumbnail
 	post.Title = request.Title
 	post.Summary = request.Summary
-	post.Content = newContent
-	post.LastUpdated = time.Now().Unix()
+	post.Content = sanitizedContent
 	post.CategoryID = request.CategoryID
 
 	if request.UserID != 0 {
@@ -334,45 +314,14 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		return nil, utility.ErrInternalServer
 	}
 
-	unusedFiles, err := s.FileRepository.FindUnusedFile(tx, post.ID, append(oldFileNames, newFileNames...))
-	if err != nil {
-		slog.Error(err.Error())
+	if err := s.FileRepository.UnlinkUnusedFiles(tx, post.ID, currentFileIDs); err != nil {
+		slog.Error("Failed to unlink unused files", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
-	if len(unusedFiles) > 0 {
-		var unusedFileNames []string
-
-		for _, file := range unusedFiles {
-			unusedFileNames = append(unusedFileNames, file.Name)
-		}
-
-		err = s.FileRepository.DeleteUnusedFile(tx, post.ID, unusedFileNames)
-		if err != nil {
-			slog.Error(err.Error())
-			return nil, utility.ErrInternalServer
-		}
-
-		for _, file := range unusedFiles {
-			if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + file.Name); err != nil {
-				slog.Error(err.Error())
-				return nil, utility.ErrInternalServer
-			}
-		}
-	}
-
-	if len(newFileNames) > 0 {
-		var fileEntities []entity.File
-		for _, fileName := range newFileNames {
-			fileEntities = append(fileEntities, entity.File{
-				PostID: post.ID,
-				Name:   fileName,
-			})
-		}
-		if err := tx.Create(&fileEntities).Error; err != nil {
-			slog.Error(err.Error())
-			return nil, utility.ErrInternalServer
-		}
+	if err := s.FileRepository.LinkFilesToPost(tx, currentFileIDs, post.ID); err != nil {
+		slog.Error("Failed to link files to post", "error", err)
+		return nil, utility.ErrInternalServer
 	}
 
 	if (request.Thumbnail != nil || request.DeleteThumbnail) && oldThumbnail != "" {
@@ -388,30 +337,21 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		}
 	}
 
-	if len(newFileNames) > 0 {
-		for _, fileName := range newFileNames {
-			if err := s.StorageAdapter.Copy(fileName, os.TempDir(), s.Config.GetString("storage.post")); err != nil {
-				slog.Error(err.Error())
-				return nil, utility.ErrInternalServer
-			}
-		}
-	}
-
 	if err := tx.Commit().Error; err != nil {
 		slog.Error(err.Error())
 		return nil, utility.ErrInternalServer
 	}
 
 	response := &model.PostResponse{
-		ID:            post.ID,
-		CategoryID:    post.CategoryID,
-		UserID:        post.UserID,
-		Title:         post.Title,
-		Summary:       post.Summary,
-		Content:       post.Content,
-		PublishedDate: post.PublishedDate,
-		LastUpdated:   post.LastUpdated,
-		Thumbnail:     post.Thumbnail,
+		ID:         post.ID,
+		CategoryID: post.CategoryID,
+		UserID:     post.UserID,
+		Title:      post.Title,
+		Summary:    post.Summary,
+		Content:    post.Content,
+		CreatedAt:  post.CreatedAt,
+		UpdatedAt:  post.UpdatedAt,
+		Thumbnail:  post.Thumbnail,
 	}
 
 	return response, nil
@@ -440,58 +380,9 @@ func (s *PostService) Delete(ctx context.Context, request *model.PostDelete, aut
 		}
 	}
 
-	var files []entity.File
-	if err := s.FileRepository.FindByPostId(tx, &files, post.ID); err != nil {
-		slog.Error(err.Error())
-		return utility.ErrInternalServer
-	}
-
-	var fileNames []string
-	for _, file := range files {
-		fileNames = append(fileNames, file.Name)
-	}
-
-	var wg sync.WaitGroup
-	var once sync.Once
-	errChan := make(chan error, 1)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// hapus file dari penyimpanan secara paralel
-	if len(fileNames) > 0 {
-		for _, fileName := range fileNames {
-			wg.Add(1)
-			go func(fileName string) {
-				defer wg.Done()
-
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + fileName); err != nil {
-						slog.Error(err.Error())
-						once.Do(func() {
-							errChan <- utility.ErrInternalServer
-							cancel()
-						})
-					}
-				}
-			}(fileName)
-		}
-
-		wg.Wait()
-
-		select {
-		case err := <-errChan:
-			return err
-		default:
-		}
-	}
-
 	if post.Thumbnail != "" {
 		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + post.Thumbnail); err != nil {
-			slog.Error(err.Error())
-			return utility.ErrInternalServer
+			slog.Error("Failed to delete post thumbnail from storage", "error", err)
 		}
 	}
 
