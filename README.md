@@ -2,7 +2,20 @@
 ChronoNewsAPI is a RESTful web service API designed for minimal news platform management. It is built using Golang and the Chi router. This API provides management of news posts, categories, and accounts, including the account reset process.
 
 ## Key Features
-The main feature of ChronoNewsAPI is its ability to automatically detect and process base64 encoded images in the `img` tag of news `content` requests. The API performs automatic compression, validation, and stores the files in parallel, ensuring efficiency and minimizing processing time.
+*   **Asynchronous Image Handling**: To ensure a fast and responsive API, image uploads are handled asynchronously. The API receives an image, saves it, and immediately queues it for background processing without blocking the user's request.
+*   **Decoupled Architecture**: Resource-intensive tasks like image compression (to WebP), file cleanup, and system maintenance are offloaded to a dedicated background worker, **[ChronoNewsScheduler](https://github.com/ScrKiddie/ChronoNewsScheduler)**. This separation of concerns keeps the API lightweight and highly available.
+*   **Dynamic Content Rebuilding**: The API dynamically injects processed image URLs back into the news content upon retrieval, ensuring that users always see the most up-to-date, optimized images without the API having to store large, pre-rendered content.
+*   **Comprehensive Management**: Provides complete CRUD (Create, Read, Update, Delete) operations for news posts, categories, and user accounts with role-based access control.
+
+
+## Service Architecture
+This project is part of a larger ecosystem and works in tandem with **[ChronoNewsScheduler](https://github.com/ScrKiddie/ChronoNewsScheduler)**, a dedicated background job processor.
+
+*   **ChronoNewsAPI (This Project)**: Acts as the primary interface for clients. It handles authentication, data validation, and management of database records. Its main responsibility is to remain fast and highly available.
+*   **[ChronoNewsScheduler](https://github.com/ScrKiddie/ChronoNewsScheduler)**: A robust Go-based worker that handles asynchronous tasks offloaded by the API. Its responsibilities include image compression to WebP, scheduled cleanup of old files, and recovering stuck tasks to ensure system reliability.
+
+This separation of concerns allows the API to stay lightweight and responsive, while complex or long-running jobs are processed efficiently in the background.
+
 
 ## Technologies
 * **Golang**: The primary programming language for developing ChronoNewsAPI.
