@@ -4,10 +4,10 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
-	"log"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -20,16 +20,20 @@ import (
 func NewValidator() *validator.Validate {
 	v := validator.New(validator.WithRequiredStructEnabled())
 	if err := v.RegisterValidation("exclusiveor", ExclusiveOr); err != nil {
-		log.Fatalf(err.Error())
+		slog.Error("failed to register 'exclusiveor' validator", "err", err)
+		os.Exit(1)
 	}
 	if err := v.RegisterValidation("image", Image); err != nil {
-		log.Fatalf(err.Error())
+		slog.Error("failed to register 'image' validator", "err", err)
+		os.Exit(1)
 	}
 	if err := v.RegisterValidation("passwordformat", PasswordFormat); err != nil {
-		log.Fatalf(err.Error())
+		slog.Error("failed to register 'passwordformat' validator", "err", err)
+		os.Exit(1)
 	}
 	if err := v.RegisterValidation("uniquemembers", UniqueMembers); err != nil {
-		log.Fatalf(err.Error())
+		slog.Error("failed to register 'uniquemembers' validator", "err", err)
+		os.Exit(1)
 	}
 	return v
 }
@@ -93,14 +97,14 @@ func Image(fl validator.FieldLevel) bool {
 
 	fileOpened, err := file.Open()
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to open file for image validation", "err", err)
 		return false
 	}
 	defer fileOpened.Close()
 
 	fileHeader := make([]byte, 512)
 	if _, err := fileOpened.Read(fileHeader); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to read file header for image validation", "err", err)
 		return false
 	}
 
@@ -114,7 +118,7 @@ func Image(fl validator.FieldLevel) bool {
 	}
 
 	if _, err := fileOpened.Seek(0, 0); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to seek file for image validation", "err", err)
 		return false
 	}
 

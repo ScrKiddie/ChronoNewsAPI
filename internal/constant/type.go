@@ -8,3 +8,8 @@ const (
 const (
 	FileStatusPending string = "pending"
 )
+
+const (
+	FileTypeThumbnail  = "thumbnail"
+	FileTypeAttachment = "attachment"
+)

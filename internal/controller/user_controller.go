@@ -34,7 +34,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	request := new(model.UserLogin)
 
 	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to decode login request", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrUnauthorized.Code, utility.ErrUnauthorized.Message)
 		return
 	}
@@ -117,7 +117,7 @@ func (c *UserController) UpdatePassword(w http.ResponseWriter, r *http.Request) 
 	auth := r.Context().Value("auth").(*model.Auth)
 	request := new(model.UserUpdatePassword)
 	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to decode update password request", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -194,7 +194,7 @@ func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
 
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse user ID from URL", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -274,7 +274,7 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse user ID from URL", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -315,7 +315,7 @@ func (c *UserController) Delete(w http.ResponseWriter, r *http.Request) {
 
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse user ID from URL", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}

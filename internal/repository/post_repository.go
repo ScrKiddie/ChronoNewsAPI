@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"chrononewsapi/internal/constant"
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
 	"strings"
@@ -17,7 +18,9 @@ func NewPostRepository() *PostRepository {
 }
 
 func (r *PostRepository) Search(db *gorm.DB, request *model.PostSearch, posts *[]entity.Post) (int64, error) {
-	query := db.Preload("User").Preload("Category")
+	query := db.Preload("User").
+		Preload("Category").
+		Preload("Files", "type = ?", constant.FileTypeThumbnail)
 	var conditions []string
 	var args []interface{}
 
@@ -87,11 +90,17 @@ func (r *PostRepository) Search(db *gorm.DB, request *model.PostSearch, posts *[
 }
 
 func (r *PostRepository) FindByID(db *gorm.DB, post *entity.Post, id int32) error {
-	return db.Where("id = ?", id).Preload("User").Preload("Category").First(post).Error
+	return db.Where("id = ?", id).
+		Preload("User").
+		Preload("Category").
+		Preload("Files").First(post).Error
 }
 
 func (r *PostRepository) FindByIDAndUserID(db *gorm.DB, post *entity.Post, postID int32, userID int32) error {
-	return db.Where("id = ?", postID).Where("user_id = ?", userID).Preload("User").Preload("Category").First(post).Error
+	return db.Where("id = ?", postID).Where("user_id = ?", userID).
+		Preload("User").
+		Preload("Category").
+		Preload("Files").First(post).Error
 }
 
 func (r *PostRepository) Update(db *gorm.DB, post *entity.Post) error {

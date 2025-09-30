@@ -5,11 +5,12 @@ type File struct {
 	CreatedAt      int64   `gorm:"column:created_at;autoCreateTime:unixtime"`
 	UpdatedAt      int64   `gorm:"column:updated_at;autoCreateTime:unixtime;autoUpdateTime:unixtime"`
 	Name           string  `gorm:"column:name;type:varchar(255);index"`
+	Type           string  `gorm:"column:type;type:file_type;default:'attachment';index"`
 	Status         string  `gorm:"column:status;type:file_status;default:'pending';index"`
 	FailedAttempts int     `gorm:"column:failed_attempts;default:0"`
 	LastError      *string `gorm:"column:last_error;type:varchar(255)"`
 	UsedByPostID   *int32  `gorm:"column:used_by_post_id;index"`
-	Post           *Post   `gorm:"foreignKey:UsedByPostID;constraint:OnDelete:SET NULL"`
+	Post           *Post   `gorm:"foreignKey:UsedByPostID"`
 }
 
 func (File) TableName() string {

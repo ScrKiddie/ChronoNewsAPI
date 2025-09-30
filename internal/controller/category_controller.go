@@ -38,7 +38,7 @@ func (c *CategoryController) Create(w http.ResponseWriter, r *http.Request) {
 	request := new(model.CategoryCreate)
 
 	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to decode create category request", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -70,7 +70,7 @@ func (c *CategoryController) Get(w http.ResponseWriter, r *http.Request) {
 
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse category ID from URL", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -108,7 +108,7 @@ func (c *CategoryController) Update(w http.ResponseWriter, r *http.Request) {
 
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse category ID from URL", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -117,7 +117,7 @@ func (c *CategoryController) Update(w http.ResponseWriter, r *http.Request) {
 	request.ID = id
 
 	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to decode update category request", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -149,7 +149,7 @@ func (c *CategoryController) Delete(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse category ID from URL", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}

@@ -6,9 +6,8 @@ type Post struct {
 	User       User     `gorm:"foreignKey:UserID"`
 	CategoryID int32    `gorm:"column:category_id;type:integer;not null"`
 	Category   Category `gorm:"foreignKey:CategoryID"`
-	Files      []File   `gorm:"foreignKey:UsedByPostID"`
+	Files      []File   `gorm:"foreignKey:UsedByPostID;constraint:OnDelete:SET NULL"`
 	Title      string   `gorm:"column:title;type:varchar(255);not null"`
-	Thumbnail  string   `gorm:"column:thumbnail;type:varchar(100);"`
 	Summary    string   `gorm:"column:summary;type:varchar(1000);not null"`
 	Content    string   `gorm:"column:content;type:text"`
 	CreatedAt  int64    `gorm:"column:created_at;autoCreateTime:unixtime"`

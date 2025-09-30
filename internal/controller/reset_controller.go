@@ -32,7 +32,7 @@ func NewResetController(resetService *service.ResetService) *ResetController {
 func (c *ResetController) RequestResetEmail(w http.ResponseWriter, r *http.Request) {
 	request := new(model.ResetEmailRequest)
 	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to decode request reset email", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -60,7 +60,7 @@ func (c *ResetController) RequestResetEmail(w http.ResponseWriter, r *http.Reque
 func (c *ResetController) Reset(w http.ResponseWriter, r *http.Request) {
 	request := new(model.ResetRequest)
 	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to decode reset password request", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}

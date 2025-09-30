@@ -32,12 +32,12 @@ func (m *UserMiddleware) Authorize(next http.Handler) http.Handler {
 		authResult, err := m.UserService.Verify(r.Context(), auth)
 		if err != nil {
 			if customErr, ok := err.(*utility.CustomError); ok {
+				slog.Warn("authorization failed", "error", customErr.Message, "path", r.URL.Path)
 				utility.CreateErrorResponse(w, customErr.Code, customErr.Message)
 				return
 			}
 		}
 
-		slog.Info("authorized request", "id", authResult.ID)
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "auth", authResult)))
 	})
 }

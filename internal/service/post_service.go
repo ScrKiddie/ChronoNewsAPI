@@ -2,6 +2,7 @@ package service
 
 import (
 	"chrononewsapi/internal/adapter"
+	"chrononewsapi/internal/constant"
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
 	"chrononewsapi/internal/repository"
@@ -54,7 +55,7 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 	var posts []entity.Post
 	total, err := s.PostRepository.Search(db, request, &posts)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to search posts", "error", err)
 		return nil, nil, utility.ErrInternalServer
 	}
 
@@ -64,13 +65,18 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 
 	var response []model.PostResponseWithPreload
 	for _, post := range posts {
+		var thumbnail string
+		if len(post.Files) > 0 {
+			thumbnail = post.Files[0].Name
+		}
+
 		response = append(response, model.PostResponseWithPreload{
 			ID:        post.ID,
 			Title:     post.Title,
 			Summary:   post.Summary,
 			CreatedAt: post.CreatedAt,
 			UpdatedAt: post.UpdatedAt,
-			Thumbnail: post.Thumbnail,
+			Thumbnail: thumbnail,
 			ViewCount: post.ViewCount,
 			User: &model.UserResponse{
 				ID:             post.User.ID,
@@ -99,7 +105,7 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 
 func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.PostResponseWithPreload, error) {
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for post get", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
@@ -107,7 +113,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 
 	post := &entity.Post{}
 	if err := s.PostRepository.FindByID(db, post, request.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find post by ID", "error", err)
 		return nil, utility.ErrNotFound
 	}
 
@@ -124,15 +130,21 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		return nil, utility.ErrInternalServer
 	}
 
+	var thumbnail string
+	for _, file := range post.Files {
+		if file.Type == constant.FileTypeThumbnail {
+			thumbnail = file.Name
+			break
+		}
+	}
+
 	response := &model.PostResponseWithPreload{
 		ID:        post.ID,
 		Title:     post.Title,
 		Summary:   post.Summary,
-		CreatedAt: post.CreatedAt,
-		UpdatedAt: post.UpdatedAt,
 		Content:   rebuiltContent,
 		ViewCount: post.ViewCount,
-		Thumbnail: post.Thumbnail,
+		Thumbnail: thumbnail,
 		User: &model.UserResponse{
 			ID:             post.User.ID,
 			Name:           post.User.Name,
@@ -145,6 +157,8 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 			ID:   post.Category.ID,
 			Name: post.Category.Name,
 		},
+		CreatedAt: post.CreatedAt,
+		UpdatedAt: post.UpdatedAt,
 	}
 
 	return response, nil
@@ -152,7 +166,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 
 func (s *PostService) IncrementViewCount(ctx context.Context, request *model.PostIncrementView) error {
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for post increment view", "error", err)
 		return utility.ErrBadRequest
 	}
 
@@ -161,18 +175,18 @@ func (s *PostService) IncrementViewCount(ctx context.Context, request *model.Pos
 
 	post := &entity.Post{}
 	if err := s.PostRepository.FindByID(tx, post, request.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find post by ID for incrementing view", "error", err)
 		return utility.ErrNotFound
 	}
 
 	post.ViewCount = post.ViewCount + 1
 	if err := s.PostRepository.Update(tx, post); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to update post view count", "error", err)
 		return utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for incrementing view count", "error", err)
 		return utility.ErrInternalServer
 	}
 
@@ -191,17 +205,17 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	}
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for post create", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
 	if err := s.UserRepository.FindByID(tx, &entity.User{}, request.UserID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("User not found for post create", "error", err)
 		return nil, utility.ErrNotFound
 	}
 
 	if err := s.CategoryRepository.FindById(tx, &entity.Category{}, request.CategoryID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Category not found for post create", "error", err)
 		return nil, utility.ErrNotFound
 	}
 
@@ -225,13 +239,23 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		CategoryID: request.CategoryID,
 	}
 
-	if request.Thumbnail != nil {
-		post.Thumbnail = utility.CreateFileName(request.Thumbnail)
+	if err := s.PostRepository.Create(tx, post); err != nil {
+		slog.Error("Failed to create post", "error", err)
+		return nil, utility.ErrInternalServer
 	}
 
-	if err := s.PostRepository.Create(tx, post); err != nil {
-		slog.Error(err.Error())
-		return nil, utility.ErrInternalServer
+	var thumbnailName string
+	if request.Thumbnail != nil {
+		thumbnailName = utility.CreateFileName(request.Thumbnail)
+		thumbnailFile := &entity.File{
+			Name:         thumbnailName,
+			Type:         constant.FileTypeThumbnail,
+			UsedByPostID: &post.ID,
+		}
+		if err := s.FileRepository.Create(tx, thumbnailFile); err != nil {
+			slog.Error("Failed to create thumbnail file record", "error", err)
+			return nil, utility.ErrInternalServer
+		}
 	}
 
 	if err := s.FileRepository.LinkFilesToPost(tx, fileIDs, post.ID); err != nil {
@@ -240,14 +264,14 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	}
 
 	if request.Thumbnail != nil {
-		if err := s.StorageAdapter.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
-			slog.Error(err.Error())
+		if err := s.StorageAdapter.Store(request.Thumbnail, s.Config.GetString("storage.post")+thumbnailName); err != nil {
+			slog.Error("Failed to store thumbnail file", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for post create", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -260,7 +284,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		Content:    post.Content,
 		CreatedAt:  post.CreatedAt,
 		UpdatedAt:  post.UpdatedAt,
-		Thumbnail:  post.Thumbnail,
+		Thumbnail:  thumbnailName,
 	}
 
 	return response, nil
@@ -274,23 +298,23 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
 		request.UserID = auth.ID
 		if err := s.PostRepository.FindByIDAndUserID(tx, post, request.ID, auth.ID); err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to find post by ID and UserID for update", "error", err)
 			return nil, utility.ErrNotFound
 		}
 	} else {
 		if err := s.PostRepository.FindByID(tx, post, request.ID); err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to find post by ID for update", "error", err)
 			return nil, utility.ErrNotFound
 		}
 	}
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for post update", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
 	if err := s.CategoryRepository.FindById(tx, &entity.Category{}, request.CategoryID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Category not found for post update", "error", err)
 		return nil, utility.ErrNotFound
 	}
 
@@ -306,28 +330,51 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		return nil, utility.ErrInternalServer
 	}
 
-	oldThumbnail := post.Thumbnail
+	var oldThumbnailFile *entity.File
+	for i := range post.Files {
+		if post.Files[i].Type == constant.FileTypeThumbnail {
+			oldThumbnailFile = &post.Files[i]
+			break
+		}
+	}
+
+	var newThumbnailName string
+	var newThumbnailFile *entity.File
+
+	if request.Thumbnail != nil {
+		newThumbnailName = utility.CreateFileName(request.Thumbnail)
+		newThumbnailFile = &entity.File{
+			Name: newThumbnailName,
+			Type: constant.FileTypeThumbnail,
+		}
+		if err := s.FileRepository.Create(tx, newThumbnailFile); err != nil {
+			slog.Error("Failed to create new thumbnail file record", "error", err)
+			return nil, utility.ErrInternalServer
+		}
+		currentFileIDs = append(currentFileIDs, newThumbnailFile.ID)
+	}
+
+	if request.Thumbnail == nil && !request.DeleteThumbnail && oldThumbnailFile != nil {
+		currentFileIDs = append(currentFileIDs, oldThumbnailFile.ID)
+	}
+
 	post.Title = request.Title
 	post.Summary = request.Summary
 	post.Content = sanitizedContent
 	post.CategoryID = request.CategoryID
 
 	if request.UserID != 0 {
+		if err := s.UserRepository.FindByID(tx, &entity.User{}, request.UserID); err != nil {
+			slog.Error("User not found for post update", "error", err)
+			return nil, utility.ErrNotFound
+		}
 		post.UserID = request.UserID
 	} else {
 		post.UserID = auth.ID
 	}
 
-	if request.DeleteThumbnail {
-		post.Thumbnail = ""
-	}
-
-	if request.Thumbnail != nil {
-		post.Thumbnail = utility.CreateFileName(request.Thumbnail)
-	}
-
 	if err := s.PostRepository.Update(tx, post); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to update post", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -341,22 +388,20 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		return nil, utility.ErrInternalServer
 	}
 
-	if (request.Thumbnail != nil || request.DeleteThumbnail) && oldThumbnail != "" {
-		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + oldThumbnail); err != nil {
-			slog.Error(err.Error())
-		}
-	}
-
 	if request.Thumbnail != nil {
-		if err := s.StorageAdapter.Store(request.Thumbnail, s.Config.GetString("storage.post")+post.Thumbnail); err != nil {
-			slog.Error(err.Error())
+		if err := s.StorageAdapter.Store(request.Thumbnail, s.Config.GetString("storage.post")+newThumbnailName); err != nil {
+			slog.Error("Failed to store new thumbnail file", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for post update", "error", err)
 		return nil, utility.ErrInternalServer
+	}
+
+	if newThumbnailName == "" && oldThumbnailFile != nil && !request.DeleteThumbnail {
+		newThumbnailName = oldThumbnailFile.Name
 	}
 
 	response := &model.PostResponse{
@@ -368,7 +413,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		Content:    post.Content,
 		CreatedAt:  post.CreatedAt,
 		UpdatedAt:  post.UpdatedAt,
-		Thumbnail:  post.Thumbnail,
+		Thumbnail:  newThumbnailName,
 	}
 
 	return response, nil
@@ -379,7 +424,7 @@ func (s *PostService) Delete(ctx context.Context, request *model.PostDelete, aut
 	defer tx.Rollback()
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for post delete", "error", err)
 		return utility.ErrBadRequest
 	}
 
@@ -387,29 +432,23 @@ func (s *PostService) Delete(ctx context.Context, request *model.PostDelete, aut
 
 	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
 		if err := s.PostRepository.FindByIDAndUserID(tx, post, request.ID, auth.ID); err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to find post by ID and UserID for delete", "error", err)
 			return utility.ErrNotFound
 		}
 	} else {
 		if err := s.PostRepository.FindByID(tx, post, request.ID); err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to find post by ID for delete", "error", err)
 			return utility.ErrNotFound
 		}
 	}
 
-	if post.Thumbnail != "" {
-		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.post") + post.Thumbnail); err != nil {
-			slog.Error("Failed to delete post thumbnail from storage", "error", err)
-		}
-	}
-
 	if err := s.PostRepository.Delete(tx, post); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to delete post", "error", err)
 		return utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for post delete", "error", err)
 		return utility.ErrInternalServer
 	}
 

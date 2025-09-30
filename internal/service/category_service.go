@@ -6,10 +6,11 @@ import (
 	"chrononewsapi/internal/repository"
 	"chrononewsapi/internal/utility"
 	"context"
-	"github.com/go-playground/validator/v10"
-	"gorm.io/gorm"
 	"log/slog"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
+	"gorm.io/gorm"
 )
 
 type CategoryService struct {
@@ -34,12 +35,12 @@ func (s *CategoryService) Create(ctx context.Context, request *model.CategoryCre
 	tx := s.DB.WithContext(ctx).Begin()
 	defer tx.Rollback()
 	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check admin status", "error", err)
 		return nil, utility.ErrForbidden
 	}
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for category create", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
@@ -52,12 +53,12 @@ func (s *CategoryService) Create(ctx context.Context, request *model.CategoryCre
 	}
 
 	if err := s.CategoryRepository.Create(tx, category); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to create category", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for category create", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -72,18 +73,18 @@ func (s *CategoryService) Update(ctx context.Context, request *model.CategoryUpd
 	defer tx.Rollback()
 
 	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check admin status", "error", err)
 		return nil, utility.ErrForbidden
 	}
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for category update", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
 	category := new(entity.Category)
 	if err := s.CategoryRepository.FindById(tx, category, request.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find category by id", "error", err)
 		return nil, utility.ErrNotFound
 	}
 
@@ -94,12 +95,12 @@ func (s *CategoryService) Update(ctx context.Context, request *model.CategoryUpd
 	category.Name = request.Name
 
 	if err := s.CategoryRepository.Update(tx, category); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to update category", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for category update", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -113,18 +114,18 @@ func (s *CategoryService) Delete(ctx context.Context, request *model.CategoryDel
 	tx := s.DB.WithContext(ctx).Begin()
 	defer tx.Rollback()
 	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check admin status", "error", err)
 		return utility.ErrForbidden
 	}
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for category delete", "error", err)
 		return utility.ErrBadRequest
 	}
 
 	ok, err := s.PostRepository.ExistsByCategoryID(tx, request.ID)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check if category is used by post", "error", err)
 		return utility.ErrInternalServer
 	} else if ok {
 		return utility.NewCustomError(http.StatusConflict, "Kategori digunakan pada berita")
@@ -132,17 +133,17 @@ func (s *CategoryService) Delete(ctx context.Context, request *model.CategoryDel
 
 	category := new(entity.Category)
 	if err := s.CategoryRepository.FindById(tx, category, request.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find category by id", "error", err)
 		return utility.ErrNotFound
 	}
 
 	if err := s.CategoryRepository.Delete(tx, category); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to delete category", "error", err)
 		return utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for category delete", "error", err)
 		return utility.ErrInternalServer
 	}
 
@@ -153,18 +154,18 @@ func (s *CategoryService) Get(ctx context.Context, request *model.CategoryGet, a
 	db := s.DB.WithContext(ctx)
 
 	if err := s.UserRepository.IsAdmin(db, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check admin status", "error", err)
 		return nil, utility.ErrForbidden
 	}
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for category get", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
 	category := new(entity.Category)
 	if err := s.CategoryRepository.FindById(db, category, request.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find category by id", "error", err)
 		return nil, utility.ErrNotFound
 	}
 
@@ -179,7 +180,7 @@ func (s *CategoryService) List(ctx context.Context) (*[]model.CategoryResponse, 
 
 	var categories []entity.Category
 	if err := s.CategoryRepository.FindAll(db, &categories); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find all categories", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 

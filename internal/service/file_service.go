@@ -49,6 +49,7 @@ func (s *FileService) UploadImage(ctx context.Context, fileHeader *multipart.Fil
 	fileEntity := entity.File{
 		Name:   fileName,
 		Status: constant.FileStatusPending,
+		Type:   constant.FileTypeAttachment,
 	}
 
 	if err := s.FileRepository.Create(tx, &fileEntity); err != nil {
@@ -67,7 +68,7 @@ func (s *FileService) UploadImage(ctx context.Context, fileHeader *multipart.Fil
 	}
 
 	return &model.ImageUploadResponse{
-		ID:   int32(fileEntity.ID),
+		ID:   fileEntity.ID,
 		Name: fileEntity.Name,
 	}, nil
 }

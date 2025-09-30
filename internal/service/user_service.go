@@ -8,15 +8,16 @@ import (
 	"chrononewsapi/internal/utility"
 	"context"
 	"embed"
-	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
-	"github.com/spf13/viper"
-	"gorm.io/gorm"
 	"html/template"
 	"log/slog"
 	"math"
 	"net/http"
 	"time"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
+	"github.com/spf13/viper"
+	"gorm.io/gorm"
 )
 
 type UserService struct {
@@ -47,7 +48,7 @@ func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, post
 
 func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*model.Auth, error) {
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for user login", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
@@ -58,7 +59,7 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 
 	ok, err := s.CaptchaAdapter.Verify(captchaRequest)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to verify captcha", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 	if !ok {
@@ -70,7 +71,7 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 	user := new(entity.User)
 
 	if err := s.UserRepository.FindPasswordByEmail(db, user, request.Email); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find user by email", "error", err)
 		return nil, utility.NewCustomError(401, "Email atau password salah")
 	}
 
@@ -80,7 +81,7 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 
 	token, err := utility.CreateJWT(s.Config.GetString("jwt.secret"), user.Role, s.Config.GetInt("jwt.exp"), user.ID)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to create JWT", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -90,14 +91,14 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 func (s *UserService) Verify(ctx context.Context, request *model.Auth) (*model.Auth, error) {
 	auth, err := utility.ValidateJWT(s.Config.GetString("jwt.secret"), request.Token)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to validate JWT", "error", err)
 		return nil, utility.ErrUnauthorized
 	}
 
 	user := new(entity.User)
 	db := s.DB.WithContext(ctx)
 	if err := s.UserRepository.FindByID(db, user, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find user by ID during verification", "error", err)
 		return nil, utility.ErrUnauthorized
 	}
 
@@ -106,14 +107,14 @@ func (s *UserService) Verify(ctx context.Context, request *model.Auth) (*model.A
 
 func (s *UserService) Current(ctx context.Context, request *model.Auth) (*model.UserResponse, error) {
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for auth model", "error", err)
 		return nil, utility.ErrUnauthorized
 	}
 
 	db := s.DB.WithContext(ctx)
 	user := new(entity.User)
 	if err := s.UserRepository.FindByID(db, user, request.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find current user by ID", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -129,7 +130,7 @@ func (s *UserService) Current(ctx context.Context, request *model.Auth) (*model.
 
 func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpdateProfile, auth *model.Auth) (*model.UserResponse, error) {
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for user profile update", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
@@ -146,7 +147,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 
 	user := new(entity.User)
 	if err := s.UserRepository.FindByID(tx, user, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find user by ID for profile update", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -165,26 +166,26 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	user.PhoneNumber = request.PhoneNumber
 
 	if err := s.UserRepository.Update(tx, user); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to update user profile", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
 	if (request.ProfilePicture != nil || request.DeleteProfilePicture) && oldFileName != "" {
 		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + oldFileName); err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to delete old profile picture from storage", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if request.ProfilePicture != nil {
 		if err := s.StorageAdapter.Store(request.ProfilePicture, s.Config.GetString("storage.profile")+user.ProfilePicture); err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to store new profile picture to storage", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for user profile update", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -200,7 +201,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 
 func (s *UserService) UpdatePassword(ctx context.Context, request *model.UserUpdatePassword, auth *model.Auth) error {
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for user password update", "error", err)
 		return utility.ErrBadRequest
 	}
 
@@ -209,7 +210,7 @@ func (s *UserService) UpdatePassword(ctx context.Context, request *model.UserUpd
 
 	user := new(entity.User)
 	if err := s.UserRepository.FindByID(tx, user, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find user by ID for password update", "error", err)
 		return utility.ErrInternalServer
 	}
 
@@ -219,19 +220,19 @@ func (s *UserService) UpdatePassword(ctx context.Context, request *model.UserUpd
 
 	hashedNewPassword, err := utility.HashPassword(request.Password)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to hash new password", "error", err)
 		return utility.ErrInternalServer
 	}
 
 	user.Password = hashedNewPassword
 
 	if err := s.UserRepository.Update(tx, user); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to update user password", "error", err)
 		return utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for user password update", "error", err)
 		return utility.ErrInternalServer
 	}
 
@@ -242,14 +243,14 @@ func (s *UserService) Search(ctx context.Context, request *model.UserSearch, aut
 	db := s.DB.WithContext(ctx)
 
 	if err := s.UserRepository.IsAdmin(db, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check admin status for user search", "error", err)
 		return nil, nil, utility.ErrForbidden
 	}
 
 	var users []entity.User
 	total, err := s.UserRepository.Search(db, request, &users, auth.ID)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to search users", "error", err)
 		return nil, nil, utility.ErrInternalServer
 	}
 
@@ -288,7 +289,7 @@ func (s *UserService) Get(ctx context.Context, request *model.UserGet, auth *mod
 	db := s.DB.WithContext(ctx)
 
 	if err := s.UserRepository.IsAdmin(db, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check admin status for user get", "error", err)
 		return nil, utility.ErrForbidden
 	}
 
@@ -297,13 +298,13 @@ func (s *UserService) Get(ctx context.Context, request *model.UserGet, auth *mod
 	}
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for user get", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
 	user := new(entity.User)
 	if err := s.UserRepository.FindByID(db, user, request.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find user by ID", "error", err)
 		return nil, utility.ErrNotFound
 	}
 
@@ -325,12 +326,12 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	defer tx.Rollback()
 
 	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check admin status for user create", "error", err)
 		return nil, utility.ErrForbidden
 	}
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for user create", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
@@ -353,7 +354,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	user.Role = request.Role
 
 	if err := s.UserRepository.Update(tx, user); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to create user", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -365,7 +366,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	reset.ExpiredAt = expiredAt
 
 	if err := s.ResetRepository.Create(tx, reset); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to create reset token for new user", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -381,7 +382,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 
 	bodyContent, err := utility.GenerateEmailBody(registeredUserTemplate, "template/registered_user_email.html", emailBody)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to generate registered user email body", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -398,19 +399,19 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	}
 
 	if err := s.EmailAdapter.Send(emailRequest); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to send registered user email", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
 	if request.ProfilePicture != nil {
 		if err := s.StorageAdapter.Store(request.ProfilePicture, s.Config.GetString("storage.profile")+user.ProfilePicture); err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to store profile picture for new user", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for user create", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -429,7 +430,7 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	defer tx.Rollback()
 
 	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check admin status for user update", "error", err)
 		return nil, utility.ErrForbidden
 	}
 
@@ -438,13 +439,13 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	}
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for user update", "error", err)
 		return nil, utility.ErrBadRequest
 	}
 
 	user := new(entity.User)
 	if err := s.UserRepository.FindByID(tx, user, request.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find user by ID for update", "error", err)
 		return nil, utility.ErrNotFound
 	}
 
@@ -477,20 +478,20 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	if request.Password != "" {
 		hashedPassword, err := utility.HashPassword(request.Password)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to hash new password on user update", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 		user.Password = hashedPassword
 	}
 
 	if err := s.UserRepository.Update(tx, user); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to update user", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
 	if (request.ProfilePicture != nil || request.DeleteProfilePicture) && oldFileName != "" {
 		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + oldFileName); err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to delete old profile picture on user update", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 	}
@@ -500,13 +501,13 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 			request.ProfilePicture,
 			s.Config.GetString("storage.profile")+user.ProfilePicture,
 		); err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to store new profile picture on user update", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for user update", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
@@ -525,7 +526,7 @@ func (s *UserService) Delete(ctx context.Context, request *model.UserDelete, aut
 	defer tx.Rollback()
 
 	if err := s.UserRepository.IsAdmin(tx, auth.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check admin status for user delete", "error", err)
 		return utility.ErrForbidden
 	}
 
@@ -534,13 +535,13 @@ func (s *UserService) Delete(ctx context.Context, request *model.UserDelete, aut
 	}
 
 	if err := s.Validator.Struct(request); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Validation failed for user delete", "error", err)
 		return utility.ErrBadRequest
 	}
 
 	ok, err := s.PostRepository.ExistsByUserID(tx, request.ID)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to check if user is used by post", "error", err)
 		return utility.ErrInternalServer
 	} else if ok {
 		return utility.NewCustomError(http.StatusConflict, "User digunakan pada berita")
@@ -548,24 +549,24 @@ func (s *UserService) Delete(ctx context.Context, request *model.UserDelete, aut
 
 	user := new(entity.User)
 	if err := s.UserRepository.FindByID(tx, user, request.ID); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to find user by ID for delete", "error", err)
 		return utility.ErrNotFound
 	}
 
 	if err := s.UserRepository.Delete(tx, user); err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to delete user", "error", err)
 		return utility.ErrInternalServer
 	}
 
 	if user.ProfilePicture != "" {
 		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + user.ProfilePicture); err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to delete profile picture from storage on user delete", "error", err)
 			return utility.ErrInternalServer
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to commit transaction for user delete", "error", err)
 		return utility.ErrInternalServer
 	}
 

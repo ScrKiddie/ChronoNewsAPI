@@ -95,7 +95,7 @@ func (c *PostController) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse post ID from URL", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -125,7 +125,7 @@ func (c *PostController) Get(w http.ResponseWriter, r *http.Request) {
 func (c *PostController) IncrementViewCount(w http.ResponseWriter, r *http.Request) {
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse post ID from URL", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -170,7 +170,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 	categoryID, err := utility.ToInt32(r.FormValue("categoryID"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse categoryID from form", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -179,7 +179,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("userID") != "" {
 		userID, err = utility.ToInt32(r.FormValue("userID"))
 		if err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to parse userID from form", "error", err)
 			utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 			return
 		}
@@ -236,7 +236,7 @@ func (c *PostController) Update(w http.ResponseWriter, r *http.Request) {
 
 	categoryID, err := utility.ToInt32(r.FormValue("categoryID"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse categoryID from form", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -246,7 +246,7 @@ func (c *PostController) Update(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("userID") != "" {
 		userID, err = utility.ToInt32(r.FormValue("userID"))
 		if err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to parse userID from form", "error", err)
 			utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 			return
 		}
@@ -254,7 +254,7 @@ func (c *PostController) Update(w http.ResponseWriter, r *http.Request) {
 
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse post ID from URL", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}
@@ -294,7 +294,7 @@ func (c *PostController) Delete(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 	id, err := utility.ToInt32(chi.URLParam(r, "id"))
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to parse post ID from URL", "error", err)
 		utility.CreateErrorResponse(w, utility.ErrBadRequest.Code, utility.ErrBadRequest.Message)
 		return
 	}

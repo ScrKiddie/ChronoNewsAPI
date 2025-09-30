@@ -4,7 +4,8 @@ import (
 	"chrononewsapi/internal/entity"
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 	"time"
 
 	slogGorm "github.com/orandin/slog-gorm"
@@ -30,12 +31,14 @@ func NewDatabase(config *viper.Viper) *gorm.DB {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger})
 	if err != nil {
-		log.Fatalln(err)
+		slog.Error("failed to connect to database", "err", err)
+		os.Exit(1)
 	}
 
 	ctx := context.Context(context.Background())
 	if err := Migrate(ctx, db); err != nil {
-		log.Fatalln(err)
+		slog.Error("failed to migrate database", "err", err)
+		os.Exit(1)
 	}
 
 	return db
@@ -59,6 +62,17 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
 	if err := tx.Exec(`
     DO $$
     BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'file_type') THEN
+            CREATE TYPE file_type AS ENUM ('thumbnail','attachment');
+        END IF;
+    END $$;
+	`).Error; err != nil {
+		return err
+	}
+
+	if err := tx.Exec(`
+    DO $$
+    BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'file_status') THEN
             CREATE TYPE file_status AS ENUM ('pending','processing','compressed','failed');
         END IF;
@@ -73,6 +87,7 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
 		&entity.File{},
 		&entity.Category{},
 		&entity.Reset{},
+		&entity.DeadLetterQueue{},
 	}
 
 	for _, e := range entities {

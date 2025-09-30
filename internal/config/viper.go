@@ -1,10 +1,11 @@
 package config
 
 import (
-	"github.com/spf13/viper"
-	"log"
 	"log/slog"
+	"os"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 func NewViper() *viper.Viper {
@@ -21,7 +22,8 @@ func NewViper() *viper.Viper {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			slog.Info("config file not found; using environment variables")
 		} else {
-			log.Fatalf("error reading config file: %s", err)
+			slog.Error("error reading config file", "err", err)
+			os.Exit(1)
 		}
 	}
 

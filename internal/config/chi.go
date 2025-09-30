@@ -2,16 +2,19 @@ package config
 
 import (
 	"encoding/json"
+	"log/slog"
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	slogchi "github.com/samber/slog-chi"
 	"github.com/spf13/viper"
-	"log/slog"
-	"net/http"
 )
 
 func NewChi(config *viper.Viper) *chi.Mux {
 	r := chi.NewRouter()
+	r.Use(slogchi.New(slog.Default()))
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   config.GetStringSlice("web.cors.origins"),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -26,7 +29,7 @@ func NewChi(config *viper.Viper) *chi.Mux {
 			"error": "Not found",
 		})
 		if err != nil {
-			slog.Error(err.Error())
+			slog.Error("failed to encode not found response", "err", err)
 		}
 	})
 	r.Use(middleware.Recoverer)
