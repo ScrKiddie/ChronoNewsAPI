@@ -41,7 +41,7 @@ func (r *CaptchaAdapter) Verify(request *model.CaptchaRequest) (bool, error) {
 	}
 
 	if !response.Success {
-		slog.Info("captcha verification failed: " + string(body))
+		slog.Info("Captcha verification failed: " + string(body))
 	}
 	return response.Success, nil
 }

@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -171,14 +172,16 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	}
 
 	if (request.ProfilePicture != nil || request.DeleteProfilePicture) && oldFileName != "" {
-		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + oldFileName); err != nil {
+		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), oldFileName)
+		if err := s.StorageAdapter.Delete(destinationPath); err != nil {
 			slog.Error("Failed to delete old profile picture from storage", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if request.ProfilePicture != nil {
-		if err := s.StorageAdapter.Store(request.ProfilePicture, s.Config.GetString("storage.profile")+user.ProfilePicture); err != nil {
+		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), user.ProfilePicture)
+		if err := s.StorageAdapter.Store(request.ProfilePicture, destinationPath); err != nil {
 			slog.Error("Failed to store new profile picture to storage", "error", err)
 			return nil, utility.ErrInternalServer
 		}
@@ -404,7 +407,8 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	}
 
 	if request.ProfilePicture != nil {
-		if err := s.StorageAdapter.Store(request.ProfilePicture, s.Config.GetString("storage.profile")+user.ProfilePicture); err != nil {
+		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), user.ProfilePicture)
+		if err := s.StorageAdapter.Store(request.ProfilePicture, destinationPath); err != nil {
 			slog.Error("Failed to store profile picture for new user", "error", err)
 			return nil, utility.ErrInternalServer
 		}
@@ -490,16 +494,18 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	}
 
 	if (request.ProfilePicture != nil || request.DeleteProfilePicture) && oldFileName != "" {
-		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + oldFileName); err != nil {
+		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), oldFileName)
+		if err := s.StorageAdapter.Delete(destinationPath); err != nil {
 			slog.Error("Failed to delete old profile picture on user update", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 	}
 
 	if request.ProfilePicture != nil {
+		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), user.ProfilePicture)
 		if err := s.StorageAdapter.Store(
 			request.ProfilePicture,
-			s.Config.GetString("storage.profile")+user.ProfilePicture,
+			destinationPath,
 		); err != nil {
 			slog.Error("Failed to store new profile picture on user update", "error", err)
 			return nil, utility.ErrInternalServer
@@ -559,7 +565,8 @@ func (s *UserService) Delete(ctx context.Context, request *model.UserDelete, aut
 	}
 
 	if user.ProfilePicture != "" {
-		if err := s.StorageAdapter.Delete(s.Config.GetString("storage.profile") + user.ProfilePicture); err != nil {
+		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), user.ProfilePicture)
+		if err := s.StorageAdapter.Delete(destinationPath); err != nil {
 			slog.Error("Failed to delete profile picture from storage on user delete", "error", err)
 			return utility.ErrInternalServer
 		}

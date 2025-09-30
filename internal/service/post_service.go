@@ -10,6 +10,7 @@ import (
 	"context"
 	"log/slog"
 	"math"
+	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
@@ -264,7 +265,10 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	}
 
 	if request.Thumbnail != nil {
-		if err := s.StorageAdapter.Store(request.Thumbnail, s.Config.GetString("storage.post")+thumbnailName); err != nil {
+		storagePath := s.Config.GetString("storage.post")
+		fullPath := filepath.Join(storagePath, thumbnailName)
+
+		if err := s.StorageAdapter.Store(request.Thumbnail, fullPath); err != nil {
 			slog.Error("Failed to store thumbnail file", "error", err)
 			return nil, utility.ErrInternalServer
 		}
@@ -389,7 +393,10 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	}
 
 	if request.Thumbnail != nil {
-		if err := s.StorageAdapter.Store(request.Thumbnail, s.Config.GetString("storage.post")+newThumbnailName); err != nil {
+		storagePath := s.Config.GetString("storage.post")
+		fullPath := filepath.Join(storagePath, newThumbnailName)
+		
+		if err := s.StorageAdapter.Store(request.Thumbnail, fullPath); err != nil {
 			slog.Error("Failed to store new thumbnail file", "error", err)
 			return nil, utility.ErrInternalServer
 		}

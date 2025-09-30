@@ -31,13 +31,13 @@ func NewDatabase(config *viper.Viper) *gorm.DB {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger})
 	if err != nil {
-		slog.Error("failed to connect to database", "err", err)
+		slog.Error("Failed to connect to database", "err", err)
 		os.Exit(1)
 	}
 
 	ctx := context.Context(context.Background())
 	if err := Migrate(ctx, db); err != nil {
-		slog.Error("failed to migrate database", "err", err)
+		slog.Error("Failed to migrate database", "err", err)
 		os.Exit(1)
 	}
 
@@ -88,6 +88,7 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
 		&entity.Category{},
 		&entity.Reset{},
 		&entity.DeadLetterQueue{},
+		&entity.SourceFileToDelete{},
 	}
 
 	for _, e := range entities {

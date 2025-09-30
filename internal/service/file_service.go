@@ -10,6 +10,7 @@ import (
 	"context"
 	"log/slog"
 	"mime/multipart"
+	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
@@ -57,7 +58,8 @@ func (s *FileService) UploadImage(ctx context.Context, fileHeader *multipart.Fil
 		return nil, utility.ErrInternalServer
 	}
 
-	if err := s.StorageAdapter.Store(fileHeader, s.Config.GetString("storage.post")+fileName); err != nil {
+	destinationPath := filepath.Join(s.Config.GetString("storage.post"), fileName)
+	if err := s.StorageAdapter.Store(fileHeader, destinationPath); err != nil {
 		slog.Error("Failed to store file to storage", "error", err)
 		return nil, utility.ErrInternalServer
 	}

@@ -29,3 +29,17 @@ type DeadLetterQueue struct {
 func (DeadLetterQueue) TableName() string {
 	return "dead_letter_queue"
 }
+
+type SourceFileToDelete struct {
+	ID             int32   `gorm:"column:id;primaryKey"`
+	FileID         int32   `gorm:"column:file_id"`
+	File           File    `gorm:"foreignKey:FileID"`
+	SourcePath     string  `gorm:"column:source_path;type:varchar(512)"`
+	FailedAttempts int     `gorm:"column:failed_attempts;default:0"`
+	LastError      *string `gorm:"column:last_error;type:varchar(255)"`
+	CreatedAt      int64   `gorm:"column:created_at;autoCreateTime:unixtime"`
+}
+
+func (SourceFileToDelete) TableName() string {
+	return "source_files_to_delete"
+}

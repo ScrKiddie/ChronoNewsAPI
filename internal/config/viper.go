@@ -20,9 +20,9 @@ func NewViper() *viper.Viper {
 
 	if err := config.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			slog.Info("config file not found; using environment variables")
+			slog.Info("Config file not found; using environment variables")
 		} else {
-			slog.Error("error reading config file", "err", err)
+			slog.Error("Error reading config file", "err", err)
 			os.Exit(1)
 		}
 	}

@@ -53,6 +53,15 @@ func Bootstrap(b *BootstrapConfig) {
 	//middleware
 	userMiddleware := middleware.NewUserMiddleware(userService)
 
-	router := route.Route{App: b.App, UserController: userController, UserMiddleware: userMiddleware, CategoryController: categoryController, PostController: postController, ResetController: resetController, FileController: fileController}
+	router := route.Route{
+		App:                b.App,
+		UserController:     userController,
+		UserMiddleware:     userMiddleware,
+		CategoryController: categoryController,
+		PostController:     postController,
+		ResetController:    resetController,
+		FileController:     fileController,
+		Config:             b.Config,
+	}
 	router.Setup()
 }
