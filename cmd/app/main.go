@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chrononewsapi/internal/bootstrap"
 	"chrononewsapi/internal/config"
 	"log"
 	"log/slog"
@@ -8,14 +9,14 @@ import (
 )
 
 func main() {
-	viper := config.NewViper()
-	db := config.NewDatabase(viper)
-	chi := config.NewChi(viper)
+	appConfig := config.NewConfig()
+	db := config.NewDatabase(appConfig)
+	chi := config.NewChi(appConfig)
 	validator := config.NewValidator()
 	client := config.NewClient()
-	config.Bootstrap(&config.BootstrapConfig{App: chi, DB: db, Config: viper, Validator: validator, Client: client})
-	slog.Info("Server run on port " + viper.GetString("web.port"))
-	err := http.ListenAndServe("0.0.0.0:"+viper.GetString("web.port"), chi)
+	bootstrap.Init(chi, db, appConfig, validator, client)
+	slog.Info("Server run on port " + appConfig.Web.Port)
+	err := http.ListenAndServe("0.0.0.0:"+appConfig.Web.Port, chi)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,12 +1,12 @@
 package route
 
 import (
+	"chrononewsapi/internal/config"
 	"chrononewsapi/internal/controller"
 	"chrononewsapi/internal/middleware"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/spf13/viper"
 )
 
 type Route struct {
@@ -17,7 +17,7 @@ type Route struct {
 	PostController     *controller.PostController
 	ResetController    *controller.ResetController
 	FileController     *controller.FileController
-	Config             *viper.Viper
+	Config             *config.Config
 }
 
 func (r *Route) Setup() {
@@ -56,8 +56,8 @@ func (r *Route) Setup() {
 		})
 	})
 
-	profilePicturePath := r.Config.GetString("storage.profile")
-	postPicturePath := r.Config.GetString("storage.post")
+	profilePicturePath := r.Config.Storage.Profile
+	postPicturePath := r.Config.Storage.Post
 
 	r.App.Handle("/profile_picture/*", http.StripPrefix("/profile_picture/", http.FileServer(http.Dir(profilePicturePath))))
 	r.App.Handle("/post_picture/*", http.StripPrefix("/post_picture/", http.FileServer(http.Dir(postPicturePath))))

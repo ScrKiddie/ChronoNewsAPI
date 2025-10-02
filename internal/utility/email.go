@@ -5,20 +5,17 @@ import (
 	"chrononewsapi/internal/model"
 	"embed"
 	"html/template"
-	"log/slog"
 )
 
 func GenerateEmailBody(fs embed.FS, templatePath string, data *model.EmailBodyData) (string, error) {
 	tmpl, err := template.ParseFS(fs, templatePath)
 	if err != nil {
-		slog.Error("Error loading email template: ", err.Error())
 		return "", err
 	}
 
 	var bodyContent bytes.Buffer
 	err = tmpl.Execute(&bodyContent, data)
 	if err != nil {
-		slog.Error("Error rendering email template: ", err.Error())
 		return "", err
 	}
 

@@ -2,6 +2,7 @@ package service
 
 import (
 	"chrononewsapi/internal/adapter"
+	"chrononewsapi/internal/config"
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
 	"chrononewsapi/internal/repository"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 )
 
@@ -30,10 +30,10 @@ type UserService struct {
 	CaptchaAdapter  *adapter.CaptchaAdapter
 	EmailAdapter    *adapter.EmailAdapter
 	Validator       *validator.Validate
-	Config          *viper.Viper
+	Config          *config.Config
 }
 
-func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, postRepository *repository.PostRepository, resetRepository *repository.ResetRepository, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, emailAdapter *adapter.EmailAdapter, validator *validator.Validate, config *viper.Viper) *UserService {
+func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, postRepository *repository.PostRepository, resetRepository *repository.ResetRepository, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, emailAdapter *adapter.EmailAdapter, validator *validator.Validate, config *config.Config) *UserService {
 	return &UserService{
 		DB:              db,
 		UserRepository:  userRepository,
@@ -55,7 +55,7 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 
 	captchaRequest := &model.CaptchaRequest{
 		TokenCaptcha: request.TokenCaptcha,
-		Secret:       s.Config.GetString("captcha.secret"),
+		Secret:       s.Config.Captcha.Secret,
 	}
 
 	ok, err := s.CaptchaAdapter.Verify(captchaRequest)
@@ -80,7 +80,7 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 		return nil, utility.NewCustomError(401, "Email atau password salah")
 	}
 
-	token, err := utility.CreateJWT(s.Config.GetString("jwt.secret"), user.Role, s.Config.GetInt("jwt.exp"), user.ID)
+	token, err := utility.CreateJWT(s.Config.JWT.Secret, user.Role, s.Config.JWT.Exp, user.ID)
 	if err != nil {
 		slog.Error("Failed to create JWT", "error", err)
 		return nil, utility.ErrInternalServer
@@ -90,7 +90,7 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 }
 
 func (s *UserService) Verify(ctx context.Context, request *model.Auth) (*model.Auth, error) {
-	auth, err := utility.ValidateJWT(s.Config.GetString("jwt.secret"), request.Token)
+	auth, err := utility.ValidateJWT(s.Config.JWT.Secret, request.Token)
 	if err != nil {
 		slog.Error("Failed to validate JWT", "error", err)
 		return nil, utility.ErrUnauthorized
@@ -172,7 +172,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	}
 
 	if (request.ProfilePicture != nil || request.DeleteProfilePicture) && oldFileName != "" {
-		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), oldFileName)
+		destinationPath := filepath.Join(s.Config.Storage.Profile, oldFileName)
 		if err := s.StorageAdapter.Delete(destinationPath); err != nil {
 			slog.Error("Failed to delete old profile picture from storage", "error", err)
 			return nil, utility.ErrInternalServer
@@ -180,7 +180,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	}
 
 	if request.ProfilePicture != nil {
-		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), user.ProfilePicture)
+		destinationPath := filepath.Join(s.Config.Storage.Profile, user.ProfilePicture)
 		if err := s.StorageAdapter.Store(request.ProfilePicture, destinationPath); err != nil {
 			slog.Error("Failed to store new profile picture to storage", "error", err)
 			return nil, utility.ErrInternalServer
@@ -362,7 +362,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	}
 
 	code := uuid.New().String()
-	expiredAt := time.Now().Add(time.Hour * time.Duration(s.Config.GetInt("reset.exp"))).Unix()
+	expiredAt := time.Now().Add(time.Hour * time.Duration(s.Config.Reset.Exp)).Unix()
 	reset := &entity.Reset{UserID: user.ID}
 	err := s.ResetRepository.FindByUserID(tx, reset, user.ID)
 	reset.Code = code
@@ -373,14 +373,14 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 		return nil, utility.ErrInternalServer
 	}
 
-	resetURL := s.Config.GetString("reset.url") + "?" + s.Config.GetString("reset.query") + "=" + code
+	resetURL := s.Config.Reset.URL + "?" + s.Config.Reset.Query + "=" + code
 
 	emailBody := &model.EmailBodyData{
 		Code:            code,
 		ResetURL:        template.URL(resetURL),
-		ResetRequestURL: template.URL(s.Config.GetString("reset.request.url")),
+		ResetRequestURL: template.URL(s.Config.Reset.RequestURL),
 		Year:            time.Now().Year(),
-		Expired:         s.Config.GetInt("reset.exp"),
+		Expired:         s.Config.Reset.Exp,
 	}
 
 	bodyContent, err := utility.GenerateEmailBody(registeredUserTemplate, "template/registered_user_email.html", emailBody)
@@ -392,13 +392,13 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	emailRequest := &model.EmailData{
 		To:        request.Email,
 		Body:      bodyContent,
-		SMTPHost:  s.Config.GetString("smtp.host"),
-		SMTPPort:  s.Config.GetInt("smtp.port"),
-		FromName:  s.Config.GetString("smtp.from.name"),
-		FromEmail: s.Config.GetString("smtp.from.email"),
-		Username:  s.Config.GetString("smtp.username"),
-		Password:  s.Config.GetString("smtp.password"),
-		Subject:   "Pendaftaran Akun Berhasil - " + s.Config.GetString("smtp.from.name"),
+		SMTPHost:  s.Config.SMTP.Host,
+		SMTPPort:  s.Config.SMTP.Port,
+		FromName:  s.Config.SMTP.FromName,
+		FromEmail: s.Config.SMTP.FromEmail,
+		Username:  s.Config.SMTP.Username,
+		Password:  s.Config.SMTP.Password,
+		Subject:   "Pendaftaran Akun Berhasil - " + s.Config.SMTP.FromName,
 	}
 
 	if err := s.EmailAdapter.Send(emailRequest); err != nil {
@@ -407,7 +407,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	}
 
 	if request.ProfilePicture != nil {
-		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), user.ProfilePicture)
+		destinationPath := filepath.Join(s.Config.Storage.Profile, user.ProfilePicture)
 		if err := s.StorageAdapter.Store(request.ProfilePicture, destinationPath); err != nil {
 			slog.Error("Failed to store profile picture for new user", "error", err)
 			return nil, utility.ErrInternalServer
@@ -494,7 +494,7 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	}
 
 	if (request.ProfilePicture != nil || request.DeleteProfilePicture) && oldFileName != "" {
-		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), oldFileName)
+		destinationPath := filepath.Join(s.Config.Storage.Profile, oldFileName)
 		if err := s.StorageAdapter.Delete(destinationPath); err != nil {
 			slog.Error("Failed to delete old profile picture on user update", "error", err)
 			return nil, utility.ErrInternalServer
@@ -502,7 +502,7 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	}
 
 	if request.ProfilePicture != nil {
-		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), user.ProfilePicture)
+		destinationPath := filepath.Join(s.Config.Storage.Profile, user.ProfilePicture)
 		if err := s.StorageAdapter.Store(
 			request.ProfilePicture,
 			destinationPath,
@@ -565,7 +565,7 @@ func (s *UserService) Delete(ctx context.Context, request *model.UserDelete, aut
 	}
 
 	if user.ProfilePicture != "" {
-		destinationPath := filepath.Join(s.Config.GetString("storage.profile"), user.ProfilePicture)
+		destinationPath := filepath.Join(s.Config.Storage.Profile, user.ProfilePicture)
 		if err := s.StorageAdapter.Delete(destinationPath); err != nil {
 			slog.Error("Failed to delete profile picture from storage on user delete", "error", err)
 			return utility.ErrInternalServer

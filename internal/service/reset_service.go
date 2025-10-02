@@ -2,6 +2,7 @@ package service
 
 import (
 	"chrononewsapi/internal/adapter"
+	"chrononewsapi/internal/config"
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
 	"chrononewsapi/internal/repository"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +25,7 @@ type ResetService struct {
 	EmailAdapter    *adapter.EmailAdapter
 	CaptchaAdapter  *adapter.CaptchaAdapter
 	Validator       *validator.Validate
-	Config          *viper.Viper
+	Config          *config.Config
 }
 
 func NewResetService(
@@ -35,7 +35,7 @@ func NewResetService(
 	emailAdapter *adapter.EmailAdapter,
 	captchaAdapter *adapter.CaptchaAdapter,
 	validator *validator.Validate,
-	config *viper.Viper,
+	config *config.Config,
 ) *ResetService {
 	return &ResetService{
 		DB:              db,
@@ -59,7 +59,7 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 
 	captchaRequest := &model.CaptchaRequest{
 		TokenCaptcha: request.TokenCaptcha,
-		Secret:       s.Config.GetString("captcha.secret"),
+		Secret:       s.Config.Captcha.Secret,
 	}
 
 	ok, err := s.CaptchaAdapter.Verify(captchaRequest)
@@ -80,7 +80,7 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 	}
 
 	code := uuid.New().String()
-	expiredAt := time.Now().Add(time.Hour * time.Duration(s.Config.GetInt("reset.exp"))).Unix()
+	expiredAt := time.Now().Add(time.Hour * time.Duration(s.Config.Reset.Exp)).Unix()
 
 	reset := &entity.Reset{UserID: id}
 	err = s.ResetRepository.FindByUserID(tx, reset, id)
@@ -100,32 +100,32 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 		}
 	}
 
-	resetURL := s.Config.GetString("reset.url") + "?" + s.Config.GetString("reset.query") + "=" + code
+	resetURL := s.Config.Reset.URL + "?" + s.Config.Reset.Query + "=" + code
 
 	emailBody := &model.EmailBodyData{
 		Code:            code,
 		ResetURL:        template.URL(resetURL),
-		ResetRequestURL: template.URL(s.Config.GetString("reset.request.url")),
+		ResetRequestURL: template.URL(s.Config.Reset.RequestURL),
 		Year:            time.Now().Year(),
-		Expired:         s.Config.GetInt("reset.exp"),
+		Expired:         s.Config.Reset.Exp,
 	}
 
 	bodyContent, err := utility.GenerateEmailBody(resetPasswordTemplate, "template/reset_password_email.html", emailBody)
 	if err != nil {
-		// Error is already logged inside GenerateEmailBody, no need to log again here.
+		slog.Error("Failed to generate reset password email body", "error", err)
 		return utility.ErrInternalServer
 	}
 
 	emailRequest := &model.EmailData{
 		To:        request.Email,
 		Body:      bodyContent,
-		SMTPHost:  s.Config.GetString("smtp.host"),
-		SMTPPort:  s.Config.GetInt("smtp.port"),
-		FromName:  s.Config.GetString("smtp.from.name"),
-		FromEmail: s.Config.GetString("smtp.from.email"),
-		Username:  s.Config.GetString("smtp.username"),
-		Password:  s.Config.GetString("smtp.password"),
-		Subject:   "Permintaan Reset Password - " + s.Config.GetString("smtp.from.name"),
+		SMTPHost:  s.Config.SMTP.Host,
+		SMTPPort:  s.Config.SMTP.Port,
+		FromName:  s.Config.SMTP.FromName,
+		FromEmail: s.Config.SMTP.FromEmail,
+		Username:  s.Config.SMTP.Username,
+		Password:  s.Config.SMTP.Password,
+		Subject:   "Permintaan Reset Password - " + s.Config.SMTP.FromName,
 	}
 
 	if err := s.EmailAdapter.Send(emailRequest); err != nil {

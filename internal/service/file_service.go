@@ -2,6 +2,7 @@ package service
 
 import (
 	"chrononewsapi/internal/adapter"
+	"chrononewsapi/internal/config"
 	"chrononewsapi/internal/constant"
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
@@ -13,7 +14,6 @@ import (
 	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 )
 
@@ -21,11 +21,11 @@ type FileService struct {
 	DB             *gorm.DB
 	FileRepository *repository.FileRepository
 	StorageAdapter *adapter.StorageAdapter
-	Config         *viper.Viper
+	Config         *config.Config
 	Validator      *validator.Validate
 }
 
-func NewFileService(db *gorm.DB, fileRepository *repository.FileRepository, storageAdapter *adapter.StorageAdapter, config *viper.Viper, validator *validator.Validate) *FileService {
+func NewFileService(db *gorm.DB, fileRepository *repository.FileRepository, storageAdapter *adapter.StorageAdapter, config *config.Config, validator *validator.Validate) *FileService {
 	return &FileService{
 		DB:             db,
 		FileRepository: fileRepository,
@@ -58,7 +58,7 @@ func (s *FileService) UploadImage(ctx context.Context, fileHeader *multipart.Fil
 		return nil, utility.ErrInternalServer
 	}
 
-	destinationPath := filepath.Join(s.Config.GetString("storage.post"), fileName)
+	destinationPath := filepath.Join(s.Config.Storage.Post, fileName)
 	if err := s.StorageAdapter.Store(fileHeader, destinationPath); err != nil {
 		slog.Error("Failed to store file to storage", "error", err)
 		return nil, utility.ErrInternalServer

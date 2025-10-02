@@ -2,6 +2,7 @@ package service
 
 import (
 	"chrononewsapi/internal/adapter"
+	"chrononewsapi/internal/config"
 	"chrononewsapi/internal/constant"
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
@@ -13,7 +14,6 @@ import (
 	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +25,7 @@ type PostService struct {
 	CategoryRepository *repository.CategoryRepository
 	StorageAdapter     *adapter.StorageAdapter
 	Validator          *validator.Validate
-	Config             *viper.Viper
+	Config             *config.Config
 }
 
 func NewPostService(
@@ -36,7 +36,7 @@ func NewPostService(
 	categoryRepository *repository.CategoryRepository,
 	storageAdapter *adapter.StorageAdapter,
 	validator *validator.Validate,
-	config *viper.Viper,
+	config *config.Config,
 ) *PostService {
 	return &PostService{
 		DB:                 db,
@@ -265,7 +265,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	}
 
 	if request.Thumbnail != nil {
-		storagePath := s.Config.GetString("storage.post")
+		storagePath := s.Config.Storage.Post
 		fullPath := filepath.Join(storagePath, thumbnailName)
 
 		if err := s.StorageAdapter.Store(request.Thumbnail, fullPath); err != nil {
@@ -393,7 +393,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	}
 
 	if request.Thumbnail != nil {
-		storagePath := s.Config.GetString("storage.post")
+		storagePath := s.Config.Storage.Post
 		fullPath := filepath.Join(storagePath, newThumbnailName)
 		
 		if err := s.StorageAdapter.Store(request.Thumbnail, fullPath); err != nil {

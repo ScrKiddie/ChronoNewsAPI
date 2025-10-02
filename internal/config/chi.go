@@ -10,14 +10,13 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	slogchi "github.com/samber/slog-chi"
-	"github.com/spf13/viper"
 )
 
-func NewChi(config *viper.Viper) *chi.Mux {
+func NewChi(config *Config) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(slogchi.New(slog.Default()))
 
-	originsStr := config.GetString("web.cors.origins")
+	originsStr := config.Web.CorsOrigins
 	var origins []string
 	if originsStr != "" {
 		origins = strings.Split(originsStr, ",")

@@ -1,7 +1,8 @@
-package config
+package bootstrap
 
 import (
 	"chrononewsapi/internal/adapter"
+	"chrononewsapi/internal/config"
 	"chrononewsapi/internal/controller"
 	"chrononewsapi/internal/middleware"
 	"chrononewsapi/internal/repository"
@@ -11,19 +12,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 )
 
-type BootstrapConfig struct {
-	App       *chi.Mux
-	DB        *gorm.DB
-	Config    *viper.Viper
-	Validator *validator.Validate
-	Client    *http.Client
-}
-
-func Bootstrap(b *BootstrapConfig) {
+func Init(app *chi.Mux, db *gorm.DB, config *config.Config, validator *validator.Validate, client *http.Client) {
 	//repository
 	userRepository := repository.NewUserRepository()
 	categoryRepository := repository.NewCategoryRepository()
@@ -33,15 +25,15 @@ func Bootstrap(b *BootstrapConfig) {
 
 	//adapter
 	storageAdapter := adapter.NewStorageAdapter()
-	captchaAdapter := adapter.NewCaptchaAdapter(b.Client)
+	captchaAdapter := adapter.NewCaptchaAdapter(client)
 	emailAdapter := adapter.NewEmailAdapter()
 
 	//service
-	userService := service.NewUserService(b.DB, userRepository, postRepository, resetRepository, storageAdapter, captchaAdapter, emailAdapter, b.Validator, b.Config)
-	categoryService := service.NewCategoryService(b.DB, categoryRepository, userRepository, postRepository, b.Validator)
-	postService := service.NewPostService(b.DB, postRepository, userRepository, fileRepository, categoryRepository, storageAdapter, b.Validator, b.Config)
-	resetService := service.NewResetService(b.DB, resetRepository, userRepository, emailAdapter, captchaAdapter, b.Validator, b.Config)
-	fileService := service.NewFileService(b.DB, fileRepository, storageAdapter, b.Config, b.Validator)
+	userService := service.NewUserService(db, userRepository, postRepository, resetRepository, storageAdapter, captchaAdapter, emailAdapter, validator, config)
+	categoryService := service.NewCategoryService(db, categoryRepository, userRepository, postRepository, validator)
+	postService := service.NewPostService(db, postRepository, userRepository, fileRepository, categoryRepository, storageAdapter, validator, config)
+	resetService := service.NewResetService(db, resetRepository, userRepository, emailAdapter, captchaAdapter, validator, config)
+	fileService := service.NewFileService(db, fileRepository, storageAdapter, config, validator)
 
 	//controller
 	userController := controller.NewUserController(userService)
@@ -54,14 +46,14 @@ func Bootstrap(b *BootstrapConfig) {
 	userMiddleware := middleware.NewUserMiddleware(userService)
 
 	router := route.Route{
-		App:                b.App,
+		App:                app,
 		UserController:     userController,
 		UserMiddleware:     userMiddleware,
 		CategoryController: categoryController,
 		PostController:     postController,
 		ResetController:    resetController,
 		FileController:     fileController,
-		Config:             b.Config,
+		Config:             config,
 	}
 	router.Setup()
 }

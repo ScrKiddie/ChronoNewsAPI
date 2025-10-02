@@ -9,17 +9,16 @@ import (
 	"time"
 
 	slogGorm "github.com/orandin/slog-gorm"
-	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func NewDatabase(config *viper.Viper) *gorm.DB {
-	username := config.GetString("db.username")
-	password := config.GetString("db.password")
-	host := config.GetString("db.host")
-	port := config.GetInt("db.port")
-	database := config.GetString("db.name")
+func NewDatabase(config *Config) *gorm.DB {
+	username := config.DB.Username
+	password := config.DB.Password
+	host := config.DB.Host
+	port := config.DB.Port
+	database := config.DB.Name
 
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable&lock_timeout=5000", username, password, host, port, database)
 
