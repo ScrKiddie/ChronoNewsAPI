@@ -21,7 +21,7 @@ type UserRegister struct {
 type UserLogin struct {
 	Email        string `validate:"required,email,max=255" json:"email"`
 	Password     string `validate:"required,passwordformat,min=8,max=255" json:"password"`
-	TokenCaptcha string `json:"tokenCaptcha" validate:"required,min=100"`
+	TokenCaptcha string `json:"tokenCaptcha" validate:"required"`
 }
 
 type UserUpdateProfile struct {

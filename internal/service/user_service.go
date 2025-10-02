@@ -73,11 +73,11 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 
 	if err := s.UserRepository.FindPasswordByEmail(db, user, request.Email); err != nil {
 		slog.Error("Failed to find user by email", "error", err)
-		return nil, utility.NewCustomError(401, "Email atau password salah")
+		return nil, utility.NewCustomError(401, "Incorrect email or password")
 	}
 
 	if !utility.VerifyPassword(user.Password, request.Password) {
-		return nil, utility.NewCustomError(401, "Email atau password salah")
+		return nil, utility.NewCustomError(401, "Incorrect email or password")
 	}
 
 	token, err := utility.CreateJWT(s.Config.JWT.Secret, user.Role, s.Config.JWT.Exp, user.ID)
@@ -218,7 +218,7 @@ func (s *UserService) UpdatePassword(ctx context.Context, request *model.UserUpd
 	}
 
 	if !utility.VerifyPassword(user.Password, request.OldPassword) {
-		return utility.NewCustomError(401, "Password lama salah")
+		return utility.NewCustomError(401, "Incorrect old password")
 	}
 
 	hashedNewPassword, err := utility.HashPassword(request.Password)
@@ -273,16 +273,16 @@ func (s *UserService) Search(ctx context.Context, request *model.UserSearch, aut
 		})
 	}
 
-	var pagination *model.Pagination
+	pagination := &model.Pagination{
+		TotalItem: total,
+	}
+
 	if request.Page != 0 && request.Size != 0 {
-		pagination = &model.Pagination{
-			Page:      request.Page,
-			Size:      request.Size,
-			TotalItem: total,
-			TotalPage: int64(math.Ceil(float64(total) / float64(request.Size))),
-		}
+		pagination.Page = request.Page
+		pagination.Size = request.Size
+		pagination.TotalPage = int64(math.Ceil(float64(total) / float64(request.Size)))
 	} else {
-		pagination = nil
+		pagination.TotalPage = 1
 	}
 
 	return &response, pagination, nil
@@ -394,11 +394,11 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 		Body:      bodyContent,
 		SMTPHost:  s.Config.SMTP.Host,
 		SMTPPort:  s.Config.SMTP.Port,
-		FromName:  s.Config.SMTP.FromName,
-		FromEmail: s.Config.SMTP.FromEmail,
+		FromName:  s.Config.SMTP.From.Name,
+		FromEmail: s.Config.SMTP.From.Email,
 		Username:  s.Config.SMTP.Username,
 		Password:  s.Config.SMTP.Password,
-		Subject:   "Pendaftaran Akun Berhasil - " + s.Config.SMTP.FromName,
+		Subject:   "Pendaftaran Akun Berhasil - " + s.Config.SMTP.From.Name,
 	}
 
 	if err := s.EmailAdapter.Send(emailRequest); err != nil {
@@ -550,7 +550,7 @@ func (s *UserService) Delete(ctx context.Context, request *model.UserDelete, aut
 		slog.Error("Failed to check if user is used by post", "error", err)
 		return utility.ErrInternalServer
 	} else if ok {
-		return utility.NewCustomError(http.StatusConflict, "User digunakan pada berita")
+		return utility.NewCustomError(http.StatusConflict, "User is used in a post")
 	}
 
 	user := new(entity.User)

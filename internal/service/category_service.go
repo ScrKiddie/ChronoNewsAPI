@@ -128,7 +128,7 @@ func (s *CategoryService) Delete(ctx context.Context, request *model.CategoryDel
 		slog.Error("Failed to check if category is used by post", "error", err)
 		return utility.ErrInternalServer
 	} else if ok {
-		return utility.NewCustomError(http.StatusConflict, "Kategori digunakan pada berita")
+		return utility.NewCustomError(http.StatusConflict, "Category is used in a post")
 	}
 
 	category := new(entity.Category)

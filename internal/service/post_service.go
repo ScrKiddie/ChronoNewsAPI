@@ -95,10 +95,15 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 	}
 
 	pagination := model.Pagination{
-		Page:      request.Page,
-		Size:      request.Size,
 		TotalItem: total,
-		TotalPage: int64(math.Ceil(float64(total) / float64(request.Size))),
+	}
+
+	if request.Page != 0 && request.Size != 0 {
+		pagination.Page = request.Page
+		pagination.Size = request.Size
+		pagination.TotalPage = int64(math.Ceil(float64(total) / float64(request.Size)))
+	} else {
+		pagination.TotalPage = 1
 	}
 
 	return &response, &pagination, nil

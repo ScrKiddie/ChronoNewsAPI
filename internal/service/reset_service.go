@@ -121,11 +121,11 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 		Body:      bodyContent,
 		SMTPHost:  s.Config.SMTP.Host,
 		SMTPPort:  s.Config.SMTP.Port,
-		FromName:  s.Config.SMTP.FromName,
-		FromEmail: s.Config.SMTP.FromEmail,
+		FromName:  s.Config.SMTP.From.Name,
+		FromEmail: s.Config.SMTP.From.Email,
 		Username:  s.Config.SMTP.Username,
 		Password:  s.Config.SMTP.Password,
-		Subject:   "Permintaan Reset Password - " + s.Config.SMTP.FromName,
+		Subject:   "Permintaan Reset Password - " + s.Config.SMTP.From.Name,
 	}
 
 	if err := s.EmailAdapter.Send(emailRequest); err != nil {

@@ -44,6 +44,6 @@ var (
 	}
 	ErrRequestEntityTooLarge = &CustomError{
 		Code:    http.StatusRequestEntityTooLarge,
-		Message: "Request Entity Too Large",
+		Message: "Request entity too large",
 	}
 )

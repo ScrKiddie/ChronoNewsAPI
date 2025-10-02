@@ -8,6 +8,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+type From struct {
+	Name  string `mapstructure:"name"`
+	Email string `mapstructure:"email"`
+}
+
 type Config struct {
 	Web struct {
 		Port        string `mapstructure:"port"`
@@ -38,12 +43,11 @@ type Config struct {
 		RequestURL string `mapstructure:"request_url"`
 	} `mapstructure:"reset"`
 	SMTP struct {
-		Host      string `mapstructure:"host"`
-		Port      int    `mapstructure:"port"`
-		FromName  string `mapstructure:"from_name"`
-		FromEmail string `mapstructure:"from_email"`
-		Username  string `mapstructure:"username"`
-		Password  string `mapstructure:"password"`
+		Host     string `mapstructure:"host"`
+		Port     int    `mapstructure:"port"`
+		From     From   `mapstructure:"from"`
+		Username string `mapstructure:"username"`
+		Password string `mapstructure:"password"`
 	} `mapstructure:"smtp"`
 }
 

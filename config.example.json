@@ -4,14 +4,8 @@
     "exp": 24
   },
   "web": {
-    "port": 3000,
-    "cors": {
-      "origins": [
-        "*",
-        "https://example.com",
-        "https://anotherdomain.com"
-      ]
-    }
+    "port": "3000",
+    "cors_origins": "*,https://example.com,https://anotherdomain.com"
   },
   "captcha": {
     "secret": "YOUR_TURNSTILE_SECRET"
@@ -30,9 +24,7 @@
   "reset": {
     "url": "https://example.com/reset",
     "query": "code",
-    "request": {
-      "url": "https://example.com/forgot"
-    },
+    "request_url": "https://example.com/forgot",
     "exp": 2
   },
   "smtp": {
@@ -43,6 +35,46 @@
     "from": {
       "name": "YOUR_NAME",
       "email": "no-reply@example.com"
+    }
+  },
+  "test": {
+    "jwt": {
+      "secret": "YOUR_SECRET_JWT",
+      "exp": 24
+    },
+    "web": {
+      "port": "3000",
+      "cors_origins": "*,https://example.com,https://anotherdomain.com"
+    },
+    "captcha": {
+      "secret": "YOUR_TURNSTILE_SECRET"
+    },
+    "db": {
+      "username": "YOUR_DB_USERNAME",
+      "password": "YOUR_DB_PASSWORD",
+      "host": "YOUR_DB_HOST",
+      "port": 5432,
+      "name": "YOUR_DB_NAME"
+    },
+    "storage": {
+      "profile": "YOUR_STORAGE_PATH",
+      "post": "YOUR_STORAGE_PATH"
+    },
+    "reset": {
+      "url": "https://example.com/reset",
+      "query": "code",
+      "request_url": "https://example.com/forgot",
+      "exp": 2
+    },
+    "smtp": {
+      "host": "smtp.example.com",
+      "port": 587,
+      "username": "your_email@example.com",
+      "password": "your_email_password",
+      "from": {
+        "name": "YOUR_NAME",
+        "email": "no-reply@example.com"
+      }
     }
   }
 }

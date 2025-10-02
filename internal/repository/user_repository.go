@@ -4,8 +4,9 @@ import (
 	"chrononewsapi/internal/constant"
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
-	"gorm.io/gorm"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 type UserRepository struct {
