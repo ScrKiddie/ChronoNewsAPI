@@ -11,7 +11,7 @@
     "secret": "YOUR_TURNSTILE_SECRET"
   },
   "db": {
-    "username": "YOUR_DB_USERNAME",
+    "user": "YOUR_DB_USER",
     "password": "YOUR_DB_PASSWORD",
     "host": "YOUR_DB_HOST",
     "port": 5432,
@@ -47,10 +47,14 @@
       "cors_origins": "*,https://example.com,https://anotherdomain.com"
     },
     "captcha": {
-      "secret": "YOUR_TURNSTILE_SECRET"
+      "secret": {
+        "pass": "1x0000000000000000000000000000000AA",
+        "fail": "2x0000000000000000000000000000000AA",
+        "usage": "3x0000000000000000000000000000000AA"
+      }
     },
     "db": {
-      "username": "YOUR_DB_USERNAME",
+      "user": "YOUR_DB_USER",
       "password": "YOUR_DB_PASSWORD",
       "host": "YOUR_DB_HOST",
       "port": 5432,

@@ -34,7 +34,7 @@ An example client application that consumes this API can be found here: **[Chron
 | **WEB_PORT**                | `string`  | Port on which the web service will run                                                                  | `8080`                                           |
 | **WEB_CORS_ORIGINS**        | `string`  | List of allowed origins for Cross-Origin Resource Sharing (CORS)                                        | `*,http://mydomain.com,http://anotherdomain.com` |
 | **CAPTCHA_SECRET**          | `string`  | Secret key for Cloudflare Turnstile                                                                   | `abcdef1234567890abcdef1234567890`               |
-| **DB_USERNAME**             | `string`  | Database username                                                                                     | `myuser`                                         |
+| **DB_USER**             | `string`  | Database user                                                                                     | `myuser`                                         |
 | **DB_PASSWORD**             | `string`  | Database password                                                                                     | `mypassword`                                     |
 | **DB_HOST**                 | `string`  | Database host                                                                                         | `localhost`                                      |
 | **DB_PORT**                 | `int`     | Database port                                                                                         | `5432`                                           |
@@ -51,12 +51,40 @@ An example client application that consumes this API can be found here: **[Chron
 | **SMTP_FROM_EMAIL**         | `string`  | Email address of the sender for SMTP emails                                                             | `dummyemail@domain.com`                          |
 | **STORAGE_PROFILE**         | `string`  | Path where profile pictures are stored                                                                   | `./storage/profile_picture/`                     |
 | **STORAGE_POST**            | `string`  | Path where post pictures are stored                                                                     | `./storage/post_picture/`                        |
-### Testing Environment
-For running the application in a test environment, all the environment variables listed above are also applicable. However, they must be prefixed with `TEST_`. This allows for a separate configuration for testing without affecting the development or production settings.
 
-For example:
-*   `DB_USERNAME` becomes `TEST_DB_USERNAME`
-*   `JWT_SECRET` becomes `TEST_JWT_SECRET`
+## Environment Configuration
+
+This application utilizes different configuration structures for **standard** (production/development) and **test** environments. This approach allows for more granular control during automated testing.
+
+### JSON Configuration (`config.json`)
+
+For details on how to structure the `config.json` file for different environments, please refer to the `config.example.json` file in the root directory.
+
+### Environment Variables
+
+When using environment variables, test-specific keys are prefixed with `TEST_`. Nested structures are flattened by joining keys with an underscore (`_`).
+
+Essentially, all environment variables for the **test** mode mirror the **standard** ones but with a `TEST_` prefix. The main exception is `CAPTCHA_SECRET`, which is uniquely split into three modes (`_PASS`, `_FAIL`, `_USAGE`) to facilitate different testing scenarios.
+
+#### **Standard Configuration**
+
+A single environment variable defines the secret.
+
+```bash
+CAPTCHA_SECRET="YOUR_REAL_SECRET_KEY"
+```
+
+#### **Test Configuration**
+
+Multiple, specific variables are used, each corresponding to a different test outcome.
+
+```bash
+TEST_CAPTCHA_SECRET_PASS="CLOUDFLARE_TEST_PASS_KEY"
+TEST_CAPTCHA_SECRET_FAIL="CLOUDFLARE_TEST_FAIL_KEY"
+TEST_CAPTCHA_SECRET_USAGE="CLOUDFLARE_TEST_USAGE_KEY"
+```
+
+
 ## Documentation
 For the full API documentation, please refer to the documentation:
 [ChronoNewsAPI Documentation](https://app.swaggerhub.com/apis-docs/ScrKiddy/ChronoNewsAPI/1.0.0)

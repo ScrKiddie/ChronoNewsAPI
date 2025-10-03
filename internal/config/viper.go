@@ -20,7 +20,7 @@ type Config struct {
 		CorsOrigins string `mapstructure:"cors_origins"`
 	} `mapstructure:"web"`
 	DB struct {
-		Username string `mapstructure:"username"`
+		User     string `mapstructure:"user"`
 		Password string `mapstructure:"password"`
 		Host     string `mapstructure:"host"`
 		Port     int    `mapstructure:"port"`

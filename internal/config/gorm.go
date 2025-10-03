@@ -14,7 +14,7 @@ import (
 )
 
 func NewDatabase(config *Config) *gorm.DB {
-	username := config.DB.Username
+	username := config.DB.User
 	password := config.DB.Password
 	host := config.DB.Host
 	port := config.DB.Port
