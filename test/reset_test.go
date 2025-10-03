@@ -57,7 +57,7 @@ func TestResetEndpoints(t *testing.T) {
 
 	t.Run("Request Password Reset - Invalid Captcha", func(t *testing.T) {
 		originalSecret := appConfig.Captcha.Secret
-		appConfig.Captcha.Secret = testCaptchaConfig.Secret.Fail
+		appConfig.Captcha.Secret = testConfig.Captcha.Secret.Fail
 		t.Cleanup(func() {
 			appConfig.Captcha.Secret = originalSecret
 		})
@@ -84,7 +84,7 @@ func TestResetEndpoints(t *testing.T) {
 
 	t.Run("Request Password Reset - Captcha Already Used", func(t *testing.T) {
 		originalSecret := appConfig.Captcha.Secret
-		appConfig.Captcha.Secret = testCaptchaConfig.Secret.Usage
+		appConfig.Captcha.Secret = testConfig.Captcha.Secret.Usage
 		t.Cleanup(func() {
 			appConfig.Captcha.Secret = originalSecret
 		})

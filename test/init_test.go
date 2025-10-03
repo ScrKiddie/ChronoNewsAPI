@@ -13,85 +13,37 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-type CaptchaSecretConfig struct {
-	Pass  string `mapstructure:"pass"`
-	Fail  string `mapstructure:"fail"`
-	Usage string `mapstructure:"usage"`
-}
-
-type TestConfig struct {
-	Secret CaptchaSecretConfig `mapstructure:"secret"`
-}
-
-func loadTestConfig() (*config.Config, *TestConfig) {
-	v := viper.New()
-
-	v.SetEnvPrefix("TEST")
-	v.AutomaticEnv()
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	v.SetConfigName("config")
-	v.SetConfigType("json")
-	v.AddConfigPath("../")
-
-	if err := v.ReadInConfig(); err != nil {
-		var configFileNotFoundError viper.ConfigFileNotFoundError
-		if !errors.As(err, &configFileNotFoundError) {
-			slog.Error("Failed to read config file for test", "error", err)
-			os.Exit(1)
-		}
-	}
-
-	testSettings := v.Sub("test").AllSettings()
-	if len(testSettings) == 0 {
-		slog.Error("Configuration 'test' block not found or is empty. Ensure it exists in config.json or is set via TEST_* env vars.")
-		os.Exit(1)
-	}
-
-	var captchaCfg TestConfig
-	if err := v.Sub("test").Sub("captcha").Unmarshal(&captchaCfg); err != nil {
-		slog.Error("Failed to unmarshal custom test config", "error", err)
-		os.Exit(1)
-	}
-
-	delete(testSettings, "captcha")
-
-	var appCfg config.Config
-	vTemp := viper.New()
-	if err := vTemp.MergeConfigMap(testSettings); err != nil {
-		slog.Error("Failed to merge test config map", "error", err)
-		os.Exit(1)
-	}
-	if err := vTemp.Unmarshal(&appCfg); err != nil {
-		slog.Error("Failed to unmarshal app config for test", "error", err)
-		os.Exit(1)
-	}
-	return &appCfg, &captchaCfg
-}
-
 var (
-	testDB            *gorm.DB
-	testRouter        *chi.Mux
-	testCaptchaConfig *TestConfig
-	appConfig         *config.Config
-	testTempDir       string
+	testDB      *gorm.DB
+	testRouter  *chi.Mux
+	testConfig  *TestConfig
+	appConfig   *config.Config
+	testTempDir string
 )
 
-func setupTestServer() {
-	appConfig, testCaptchaConfig = loadTestConfig()
+func convertTestConfigToAppConfig(testCfg *TestConfig) *config.Config {
+	return &config.Config{
+		Web:     testConfig.Web,
+		DB:      testConfig.DB,
+		JWT:     testConfig.JWT,
+		Captcha: config.CaptchaConfig{Secret: testCfg.Captcha.Secret.Pass},
+		Storage: testConfig.Storage,
+		Reset:   testConfig.Reset,
+		SMTP:    testConfig.SMTP,
+	}
+}
 
-	appConfig.Captcha.Secret = testCaptchaConfig.Secret.Pass
+func setupTestServer() {
+	testConfig = loadTestConfig()
+	appConfig = convertTestConfigToAppConfig(testConfig)
 
 	testDB = config.NewDatabase(appConfig)
 	testRouter = config.NewChi(appConfig)

@@ -1,0 +1,71 @@
+name: Go CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13-alpine
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      mailhog:
+        image: mailhog/mailhog
+        ports:
+          - 1025:1025 
+          - 8025:8025 
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Run tests
+        run: go test -v ./test/...
+        env:
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 5432
+          TEST_DB_USER: testuser
+          TEST_DB_PASSWORD: testpassword
+          TEST_DB_NAME: testdb
+          TEST_SMTP_HOST: localhost
+          TEST_SMTP_PORT: 1025
+          TEST_SMTP_USERNAME: ""
+          TEST_SMTP_PASSWORD: ""
+          TEST_SMTP_FROM_NAME: "ChronoNews"
+          TEST_SMTP_FROM_EMAIL: "chrononews@example.com"
+          TEST_WEB_PORT: "3026"
+          TEST_WEB_CORS_ORIGINS: "*,http://localhost:5173"
+          TEST_RESET_URL: "localhost:5173/reset_test"
+          TEST_RESET_QUERY: "code"
+          TEST_RESET_REQUEST_URL: "localhost:5173/forgot_test"
+          TEST_RESET_EXP: 2
+          TEST_JWT_SECRET: 'SECRET_JWT_TEST'
+          TEST_JWT_EXP: 24
+          TEST_CAPTCHA_SECRET_PASS: '1x0000000000000000000000000000000AA'
+          TEST_CAPTCHA_SECRET_FAIL: '2x0000000000000000000000000000000AA'
+          TEST_CAPTCHA_SECRET_USAGE: '3x0000000000000000000000000000000AA'
+          TEST_STORAGE_PROFILE: "/storage/profile_picture"
+          TEST_STORAGE_POST: "/storage/post_picture"
