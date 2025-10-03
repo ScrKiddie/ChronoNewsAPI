@@ -3,10 +3,9 @@ package bootstrap
 import (
 	"chrononewsapi/internal/adapter"
 	"chrononewsapi/internal/config"
-	"chrononewsapi/internal/controller"
-	"chrononewsapi/internal/middleware"
+	"chrononewsapi/internal/handler/controller"
+	"chrononewsapi/internal/handler/middleware"
 	"chrononewsapi/internal/repository"
-	"chrononewsapi/internal/route"
 	"chrononewsapi/internal/service"
 	"net/http"
 
@@ -16,36 +15,36 @@ import (
 )
 
 func Init(app *chi.Mux, db *gorm.DB, config *config.Config, validator *validator.Validate, client *http.Client) {
-	//repository
+	// Repository
 	userRepository := repository.NewUserRepository()
 	categoryRepository := repository.NewCategoryRepository()
 	fileRepository := repository.NewFileRepository()
 	postRepository := repository.NewPostRepository()
 	resetRepository := repository.NewResetRepository()
 
-	//adapter
+	// Adapter
 	storageAdapter := adapter.NewStorageAdapter()
 	captchaAdapter := adapter.NewCaptchaAdapter(client)
 	emailAdapter := adapter.NewEmailAdapter()
 
-	//service
+	// Service
 	userService := service.NewUserService(db, userRepository, postRepository, resetRepository, storageAdapter, captchaAdapter, emailAdapter, validator, config)
 	categoryService := service.NewCategoryService(db, categoryRepository, userRepository, postRepository, validator)
 	postService := service.NewPostService(db, postRepository, userRepository, fileRepository, categoryRepository, storageAdapter, validator, config)
 	resetService := service.NewResetService(db, resetRepository, userRepository, emailAdapter, captchaAdapter, validator, config)
 	fileService := service.NewFileService(db, fileRepository, storageAdapter, config, validator)
 
-	//controller
+	// Controller
 	userController := controller.NewUserController(userService)
 	categoryController := controller.NewCategoryController(categoryService)
 	postController := controller.NewPostController(postService)
 	resetController := controller.NewResetController(resetService)
 	fileController := controller.NewFileController(fileService)
 
-	//middleware
+	// Middleware
 	userMiddleware := middleware.NewUserMiddleware(userService)
 
-	router := route.Route{
+	router := Route{
 		App:                app,
 		UserController:     userController,
 		UserMiddleware:     userMiddleware,

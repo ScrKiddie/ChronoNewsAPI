@@ -38,7 +38,7 @@ func (c *ResetController) RequestResetEmail(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := c.ResetService.ResetEmail(r.Context(), request); err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -66,7 +66,7 @@ func (c *ResetController) Reset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := c.ResetService.Reset(r.Context(), request); err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 

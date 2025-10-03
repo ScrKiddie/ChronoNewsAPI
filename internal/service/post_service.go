@@ -400,7 +400,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	if request.Thumbnail != nil {
 		storagePath := s.Config.Storage.Post
 		fullPath := filepath.Join(storagePath, newThumbnailName)
-		
+
 		if err := s.StorageAdapter.Store(request.Thumbnail, fullPath); err != nil {
 			slog.Error("Failed to store new thumbnail file", "error", err)
 			return nil, utility.ErrInternalServer

@@ -38,8 +38,7 @@ func (c *FileController) UploadImage(w http.ResponseWriter, r *http.Request) {
 
 	response, err := c.FileService.UploadImage(r.Context(), fileHeader)
 	if err != nil {
-		customErr := err.(*utility.CustomError)
-		utility.CreateErrorResponse(w, customErr.Code, customErr.Message)
+		utility.HandleError(w, err)
 		return
 	}
 

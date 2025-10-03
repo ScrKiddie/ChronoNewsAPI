@@ -1,9 +1,9 @@
-package route
+package bootstrap
 
 import (
 	"chrononewsapi/internal/config"
-	"chrononewsapi/internal/controller"
-	"chrononewsapi/internal/middleware"
+	"chrononewsapi/internal/handler/controller"
+	"chrononewsapi/internal/handler/middleware"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"

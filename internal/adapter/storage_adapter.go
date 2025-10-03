@@ -25,18 +25,25 @@ func (f *StorageAdapter) Store(file *multipart.FileHeader, path string) error {
 	if err != nil {
 		return err
 	}
-	defer fileOpened.Close()
+	defer func(fileOpened multipart.File) {
+		err := fileOpened.Close()
+		if err != nil {
+			slog.Error("Failed to close opened multipart file", "err", err)
+		}
+	}(fileOpened)
 	fileStored, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	defer fileStored.Close()
+	defer func(fileStored *os.File) {
+		err := fileStored.Close()
+		if err != nil {
+			slog.Error("Failed to close stored file", "err", err)
+		}
+	}(fileStored)
 	_, err = io.Copy(fileStored, fileOpened)
 	if err != nil {
 		_ = os.Remove(path)
-		return err
-	}
-	if err != nil {
 		return err
 	}
 	return nil
@@ -66,13 +73,23 @@ func (f *StorageAdapter) Copy(fileName, tempDir, destDir string) error {
 	if err != nil {
 		return err
 	}
-	defer tempFile.Close()
+	defer func(tempFile *os.File) {
+		err := tempFile.Close()
+		if err != nil {
+			slog.Error("Failed to close temporary file during copy", "err", err)
+		}
+	}(tempFile)
 
 	destFile, err := os.Create(destPath)
 	if err != nil {
 		return err
 	}
-	defer destFile.Close()
+	defer func(destFile *os.File) {
+		err := destFile.Close()
+		if err != nil {
+			slog.Error("Failed to close destination file during copy", "err", err)
+		}
+	}(destFile)
 
 	_, err = io.Copy(destFile, tempFile)
 	if err != nil {

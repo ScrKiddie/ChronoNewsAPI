@@ -33,7 +33,7 @@ func (r *FileRepository) FindAsMap(db *gorm.DB, ids []int32) map[int32]*entity.F
 	db.Where("id IN ?", ids).Find(&files)
 
 	for i := range files {
-		fileMap[int32(files[i].ID)] = &files[i]
+		fileMap[files[i].ID] = &files[i]
 	}
 
 	return fileMap

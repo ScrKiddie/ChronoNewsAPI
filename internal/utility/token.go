@@ -3,8 +3,9 @@ package utility
 import (
 	"chrononewsapi/internal/model"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func CreateJWT(secret string, role string, exp int, id int32) (string, error) {

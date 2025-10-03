@@ -73,7 +73,7 @@ func (c *PostController) Search(w http.ResponseWriter, r *http.Request) {
 	}
 	posts, pagination, err := c.PostService.Search(r.Context(), request)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -104,7 +104,7 @@ func (c *PostController) Get(w http.ResponseWriter, r *http.Request) {
 
 	post, err := c.PostService.Get(r.Context(), request)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -134,8 +134,7 @@ func (c *PostController) IncrementViewCount(w http.ResponseWriter, r *http.Reque
 
 	err = c.PostService.IncrementViewCount(r.Context(), request)
 	if err != nil {
-		customErr := err.(*utility.CustomError)
-		utility.CreateErrorResponse(w, customErr.Code, customErr.Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -197,7 +196,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 
 	post, err := c.PostService.Create(r.Context(), request, auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -271,7 +270,7 @@ func (c *PostController) Update(w http.ResponseWriter, r *http.Request) {
 	request.DeleteThumbnail = r.FormValue("deleteThumbnail") == "true"
 	post, err := c.PostService.Update(r.Context(), request, auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -303,7 +302,7 @@ func (c *PostController) Delete(w http.ResponseWriter, r *http.Request) {
 
 	err = c.PostService.Delete(r.Context(), request, auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 

@@ -17,7 +17,7 @@ func NewUserRepository() *UserRepository {
 	return &UserRepository{}
 }
 
-func (u *UserRepository) FindIDByEmail(db *gorm.DB, email string) int32 {
+func (r *UserRepository) FindIDByEmail(db *gorm.DB, email string) int32 {
 	var user entity.User
 	if err := db.Select("id").Where("email = ?", email).First(&user).Error; err != nil {
 		return 0
@@ -25,7 +25,7 @@ func (u *UserRepository) FindIDByEmail(db *gorm.DB, email string) int32 {
 	return user.ID
 }
 
-func (u *UserRepository) FindIDByPhoneNumber(db *gorm.DB, phoneNumber string) int32 {
+func (r *UserRepository) FindIDByPhoneNumber(db *gorm.DB, phoneNumber string) int32 {
 	var user entity.User
 	if err := db.Select("id").Where("phone_number = ?", phoneNumber).First(&user).Error; err != nil {
 		return 0
@@ -33,19 +33,19 @@ func (u *UserRepository) FindIDByPhoneNumber(db *gorm.DB, phoneNumber string) in
 	return user.ID
 }
 
-func (u *UserRepository) FindPasswordByEmail(db *gorm.DB, entity *entity.User, email string) error {
+func (r *UserRepository) FindPasswordByEmail(db *gorm.DB, entity *entity.User, email string) error {
 	return db.Where("email = ?", email).First(entity).Error
 }
 
-func (u *UserRepository) FindByID(db *gorm.DB, entity *entity.User, id int32) error {
+func (r *UserRepository) FindByID(db *gorm.DB, entity *entity.User, id int32) error {
 	return db.Where("id = ?", id).First(entity).Error
 }
 
-func (u *UserRepository) IsAdmin(db *gorm.DB, id int32) error {
+func (r *UserRepository) IsAdmin(db *gorm.DB, id int32) error {
 	return db.Where("id = ?", id).Where("role = ?", constant.Admin).First(&entity.User{}).Error
 }
 
-func (u *UserRepository) Search(db *gorm.DB, request *model.UserSearch, entities *[]entity.User, currentId int32) (int64, error) {
+func (r *UserRepository) Search(db *gorm.DB, request *model.UserSearch, entities *[]entity.User, currentId int32) (int64, error) {
 	var conditions []string
 	var args []interface{}
 

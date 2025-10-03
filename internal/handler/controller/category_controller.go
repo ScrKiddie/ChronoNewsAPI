@@ -5,9 +5,10 @@ import (
 	"chrononewsapi/internal/service"
 	"chrononewsapi/internal/utility"
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
 	"log/slog"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type CategoryController struct {
@@ -45,7 +46,7 @@ func (c *CategoryController) Create(w http.ResponseWriter, r *http.Request) {
 
 	response, err := c.CategoryService.Create(r.Context(), request, auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -80,7 +81,7 @@ func (c *CategoryController) Get(w http.ResponseWriter, r *http.Request) {
 
 	response, err := c.CategoryService.Get(r.Context(), request, auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -124,7 +125,7 @@ func (c *CategoryController) Update(w http.ResponseWriter, r *http.Request) {
 
 	response, err := c.CategoryService.Update(r.Context(), request, auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -158,7 +159,7 @@ func (c *CategoryController) Delete(w http.ResponseWriter, r *http.Request) {
 	request.ID = id
 
 	if err := c.CategoryService.Delete(r.Context(), request, auth); err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -176,7 +177,7 @@ func (c *CategoryController) Delete(w http.ResponseWriter, r *http.Request) {
 func (c *CategoryController) List(w http.ResponseWriter, r *http.Request) {
 	response, err := c.CategoryService.List(r.Context())
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 

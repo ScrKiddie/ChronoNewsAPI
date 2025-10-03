@@ -3,6 +3,8 @@ package adapter
 import (
 	"chrononewsapi/internal/model"
 	"fmt"
+	"log/slog"
+	"math"
 	"math/rand"
 	"net/smtp"
 	"strings"
@@ -45,10 +47,25 @@ func (e *EmailAdapter) Send(request *model.EmailData) error {
 	fullMessage := builder.String()
 	address := fmt.Sprintf("%s:%d", request.SMTPHost, request.SMTPPort)
 
-	err := smtp.SendMail(address, auth, request.FromEmail, []string{request.To}, []byte(fullMessage))
-	if err != nil {
-		return fmt.Errorf("failed to send email: %v", err)
+	const maxRetries = 3
+	const initialBackoff = 2 * time.Second
+
+	var err error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err = smtp.SendMail(address, auth, request.FromEmail, []string{request.To}, []byte(fullMessage))
+		if err == nil {
+			return nil
+		}
+
+		slog.Warn("Failed to send email, retrying...", "attempt", attempt+1, "error", err)
+
+		if attempt == maxRetries-1 {
+			break
+		}
+
+		backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
+		time.Sleep(backoff)
 	}
 
-	return nil
+	return fmt.Errorf("failed to send email after %d attempts: %w", maxRetries, err)
 }

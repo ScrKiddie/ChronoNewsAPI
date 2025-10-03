@@ -16,6 +16,9 @@ This project is part of a larger ecosystem and works in tandem with **[ChronoNew
 
 This separation of concerns allows the API to stay lightweight and responsive, while complex or long-running jobs are processed efficiently in the background.
 
+## Example Client Application
+An example client application that consumes this API can be found here: **[ChronoNews](https://github.com/ScrKiddie/ChronoNews)**. This client demonstrates how to interact with the ChronoNewsAPI to build a complete news platform.
+
 
 ## Technologies
 * **Golang**: The primary programming language for developing ChronoNewsAPI.

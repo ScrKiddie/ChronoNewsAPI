@@ -5,6 +5,7 @@ import (
 	"chrononewsapi/internal/service"
 	"chrononewsapi/internal/utility"
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -31,7 +32,8 @@ func (m *UserMiddleware) Authorize(next http.Handler) http.Handler {
 
 		authResult, err := m.UserService.Verify(r.Context(), auth)
 		if err != nil {
-			if customErr, ok := err.(*utility.CustomError); ok {
+			var customErr *utility.CustomError
+			if errors.As(err, &customErr) {
 				slog.Warn("authorization failed", "error", customErr.Message, "path", r.URL.Path)
 				utility.CreateErrorResponse(w, customErr.Code, customErr.Message)
 				return

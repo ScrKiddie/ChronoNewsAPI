@@ -5,9 +5,10 @@ import (
 	"chrononewsapi/internal/service"
 	"chrononewsapi/internal/utility"
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
 	"log/slog"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type UserController struct {
@@ -41,7 +42,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 
 	response, err := c.UserService.Login(r.Context(), request)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 	utility.CreateSuccessResponse(w, http.StatusOK, response.Token)
@@ -61,7 +62,7 @@ func (c *UserController) Current(w http.ResponseWriter, r *http.Request) {
 	auth := r.Context().Value("auth").(*model.Auth)
 	response, err := c.UserService.Current(r.Context(), auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 	utility.CreateSuccessResponse(w, http.StatusOK, response)
@@ -94,7 +95,7 @@ func (c *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	_, request.ProfilePicture, _ = r.FormFile("profilePicture")
 	response, err := c.UserService.UpdateProfile(r.Context(), request, auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 	utility.CreateSuccessResponse(w, http.StatusOK, response)
@@ -122,7 +123,7 @@ func (c *UserController) UpdatePassword(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err := c.UserService.UpdatePassword(r.Context(), request, auth); err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 	utility.CreateSuccessResponse(w, http.StatusCreated, "Password updated successfully")
@@ -157,8 +158,8 @@ func (c *UserController) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	request := new(model.UserSearch)
-	request.Page = int64(page)
-	request.Size = int64(size)
+	request.Page = page
+	request.Size = size
 	request.Name = r.URL.Query().Get("name")
 	request.Role = r.URL.Query().Get("role")
 	request.PhoneNumber = r.URL.Query().Get("phoneNumber")
@@ -166,7 +167,7 @@ func (c *UserController) Search(w http.ResponseWriter, r *http.Request) {
 
 	response, pagination, err := c.UserService.Search(r.Context(), request, auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 	if pagination == nil {
@@ -204,7 +205,7 @@ func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
 
 	response, err := c.UserService.Get(r.Context(), request, auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -241,7 +242,7 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 	response, err := c.UserService.Create(r.Context(), request, auth)
 
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -290,7 +291,7 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 	request.DeleteProfilePicture = r.FormValue("deleteProfilePicture") == "true"
 	response, err := c.UserService.Update(r.Context(), request, auth)
 	if err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 
@@ -324,7 +325,7 @@ func (c *UserController) Delete(w http.ResponseWriter, r *http.Request) {
 	request.ID = id
 
 	if err := c.UserService.Delete(r.Context(), request, auth); err != nil {
-		utility.CreateErrorResponse(w, err.(*utility.CustomError).Code, err.(*utility.CustomError).Message)
+		utility.HandleError(w, err)
 		return
 	}
 

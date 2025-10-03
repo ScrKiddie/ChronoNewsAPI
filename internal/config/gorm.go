@@ -34,7 +34,7 @@ func NewDatabase(config *Config) *gorm.DB {
 		os.Exit(1)
 	}
 
-	ctx := context.Context(context.Background())
+	ctx := context.Background()
 	if err := Migrate(ctx, db); err != nil {
 		slog.Error("Failed to migrate database", "err", err)
 		os.Exit(1)

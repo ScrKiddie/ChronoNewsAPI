@@ -100,7 +100,12 @@ func Image(fl validator.FieldLevel) bool {
 		slog.Error("Failed to open file for image validation", "err", err)
 		return false
 	}
-	defer fileOpened.Close()
+	defer func(fileOpened multipart.File) {
+		err := fileOpened.Close()
+		if err != nil {
+			slog.Error("Failed to close file after image validation", "err", err)
+		}
+	}(fileOpened)
 
 	fileHeader := make([]byte, 512)
 	if _, err := fileOpened.Read(fileHeader); err != nil {

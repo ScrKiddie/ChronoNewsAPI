@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"log/slog"
 	"os"
 	"strings"
@@ -62,11 +63,9 @@ func NewConfig() *Config {
 	config.AddConfigPath("./")
 
 	if err := config.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if errors.As(err, &configFileNotFoundError) {
 			slog.Info("Config file not found; using environment variables")
-		} else {
-			slog.Error("Error reading config file", "err", err)
-			os.Exit(1)
 		}
 	}
 
