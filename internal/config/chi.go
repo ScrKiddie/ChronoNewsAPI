@@ -9,12 +9,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	slogchi "github.com/samber/slog-chi"
 )
 
 func NewChi(config *Config) *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(slogchi.New(slog.Default()))
+
+	// HAPUS baris ini untuk menghilangkan log request
+	// r.Use(slogchi.New(slog.Default()))
 
 	originsStr := config.Web.CorsOrigins
 	var origins []string

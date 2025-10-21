@@ -7,6 +7,7 @@ import (
 	"chrononewsapi/internal/handler/middleware"
 	"chrononewsapi/internal/repository"
 	"chrononewsapi/internal/service"
+	"chrononewsapi/internal/service/compression"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -27,10 +28,13 @@ func Init(app *chi.Mux, db *gorm.DB, config *config.Config, validator *validator
 	captchaAdapter := adapter.NewCaptchaAdapter(client)
 	emailAdapter := adapter.NewEmailAdapter()
 
+	// Compression Service
+	compressionService := compression.NewCompressionService(db, config)
+
 	// Service
 	userService := service.NewUserService(db, userRepository, postRepository, resetRepository, storageAdapter, captchaAdapter, emailAdapter, validator, config)
 	categoryService := service.NewCategoryService(db, categoryRepository, userRepository, postRepository, validator)
-	postService := service.NewPostService(db, postRepository, userRepository, fileRepository, categoryRepository, storageAdapter, validator, config)
+	postService := service.NewPostService(db, postRepository, userRepository, fileRepository, categoryRepository, storageAdapter, compressionService, validator, config)
 	resetService := service.NewResetService(db, resetRepository, userRepository, emailAdapter, captchaAdapter, validator, config)
 	fileService := service.NewFileService(db, fileRepository, storageAdapter, config, validator)
 

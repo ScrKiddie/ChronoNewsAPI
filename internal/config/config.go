@@ -37,8 +37,10 @@ type CaptchaConfig struct {
 }
 
 type StorageConfig struct {
-	Post    string `mapstructure:"post"`
-	Profile string `mapstructure:"profile"`
+	Post       string `mapstructure:"post"`
+	Profile    string `mapstructure:"profile"`
+	Upload     string `mapstructure:"upload"`
+	Compressed string `mapstructure:"compressed"`
 }
 
 type ResetConfig struct {
@@ -56,14 +58,25 @@ type SMTPConfig struct {
 	Password string     `mapstructure:"password"`
 }
 
+type CompressionConfig struct {
+	IsConcurrent bool   `mapstructure:"is_concurrent"`
+	NumWorkers   int    `mapstructure:"num_workers"`
+	MaxWidth     int    `mapstructure:"max_width"`
+	MaxHeight    int    `mapstructure:"max_height"`
+	WebPQuality  int    `mapstructure:"webp_quality"`
+	MaxRetries   int    `mapstructure:"max_retries"`
+	LogLevel     string `mapstructure:"log_level"`
+}
+
 type Config struct {
-	Web     WebConfig     `mapstructure:"web"`
-	DB      DBConfig      `mapstructure:"db"`
-	JWT     JWTConfig     `mapstructure:"jwt"`
-	Captcha CaptchaConfig `mapstructure:"captcha"`
-	Storage StorageConfig `mapstructure:"storage"`
-	Reset   ResetConfig   `mapstructure:"reset"`
-	SMTP    SMTPConfig    `mapstructure:"smtp"`
+	Web         WebConfig         `mapstructure:"web"`
+	DB          DBConfig          `mapstructure:"db"`
+	JWT         JWTConfig         `mapstructure:"jwt"`
+	Captcha     CaptchaConfig     `mapstructure:"captcha"`
+	Storage     StorageConfig     `mapstructure:"storage"`
+	Reset       ResetConfig       `mapstructure:"reset"`
+	SMTP        SMTPConfig        `mapstructure:"smtp"`
+	Compression CompressionConfig `mapstructure:"compression"`
 }
 
 func NewConfig() *Config {
@@ -75,10 +88,14 @@ func NewConfig() *Config {
 		"db.user", "db.password", "db.host", "db.port", "db.name",
 		"jwt.secret", "jwt.exp",
 		"captcha.secret",
-		"storage.post", "storage.profile",
+		"storage.post", "storage.profile", "storage.upload", "storage.compressed",
 		"reset.exp", "reset.url", "reset.query", "reset.request_url",
 		"smtp.host", "smtp.port", "smtp.username", "smtp.password",
 		"smtp.from.name", "smtp.from.email",
+		"compression.is_concurrent", "compression.num_workers",
+		"compression.max_width", "compression.max_height",
+		"compression.webp_quality", "compression.max_retries",
+		"compression.log_level",
 	}
 
 	for _, key := range envKeys {
@@ -104,6 +121,25 @@ func NewConfig() *Config {
 	if err := config.Unmarshal(&appConfig); err != nil {
 		slog.Error("Error unmarshalling config", "err", err)
 		os.Exit(1)
+	}
+
+	if appConfig.Compression.MaxWidth == 0 {
+		appConfig.Compression.MaxWidth = 1920
+	}
+	if appConfig.Compression.MaxHeight == 0 {
+		appConfig.Compression.MaxHeight = 1080
+	}
+	if appConfig.Compression.WebPQuality == 0 {
+		appConfig.Compression.WebPQuality = 80
+	}
+	if appConfig.Compression.MaxRetries == 0 {
+		appConfig.Compression.MaxRetries = 3
+	}
+	if appConfig.Compression.NumWorkers == 0 {
+		appConfig.Compression.NumWorkers = 4
+	}
+	if appConfig.Compression.LogLevel == "" {
+		appConfig.Compression.LogLevel = "info"
 	}
 
 	if err := validateConfig(&appConfig); err != nil {
@@ -171,8 +207,29 @@ func validateConfig(cfg *Config) error {
 		missingFields = append(missingFields, "smtp.from.email")
 	}
 
+	if cfg.Compression.MaxWidth <= 0 {
+		missingFields = append(missingFields, "compression.max_width")
+	}
+	if cfg.Compression.MaxHeight <= 0 {
+		missingFields = append(missingFields, "compression.max_height")
+	}
+	if cfg.Compression.WebPQuality <= 0 || cfg.Compression.WebPQuality > 100 {
+		missingFields = append(missingFields, "compression.webp_quality (must be 1-100)")
+	}
+	if cfg.Compression.MaxRetries <= 0 {
+		missingFields = append(missingFields, "compression.max_retries")
+	}
+	if cfg.Compression.NumWorkers <= 0 {
+		missingFields = append(missingFields, "compression.num_workers")
+	}
+
+	validLogLevels := map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
+	if !validLogLevels[cfg.Compression.LogLevel] {
+		missingFields = append(missingFields, "compression.log_level (must be: debug, info, warn, or error)")
+	}
+
 	if len(missingFields) > 0 {
-		return errors.New("missing required configuration fields: " + strings.Join(missingFields, ", "))
+		return errors.New("missing or invalid required configuration fields: " + strings.Join(missingFields, ", "))
 	}
 
 	return nil

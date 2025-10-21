@@ -7,8 +7,10 @@ import (
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
 	"chrononewsapi/internal/repository"
+	"chrononewsapi/internal/service/compression"
 	"chrononewsapi/internal/utility"
 	"context"
+	"fmt"
 	"log/slog"
 	"math"
 	"path/filepath"
@@ -24,6 +26,7 @@ type PostService struct {
 	FileRepository     *repository.FileRepository
 	CategoryRepository *repository.CategoryRepository
 	StorageAdapter     *adapter.StorageAdapter
+	CompressionService *compression.CompressionService
 	Validator          *validator.Validate
 	Config             *config.Config
 }
@@ -35,6 +38,7 @@ func NewPostService(
 	fileRepository *repository.FileRepository,
 	categoryRepository *repository.CategoryRepository,
 	storageAdapter *adapter.StorageAdapter,
+	compressionService *compression.CompressionService,
 	validator *validator.Validate,
 	config *config.Config,
 ) *PostService {
@@ -45,6 +49,7 @@ func NewPostService(
 		FileRepository:     fileRepository,
 		CategoryRepository: categoryRepository,
 		StorageAdapter:     storageAdapter,
+		CompressionService: compressionService,
 		Validator:          validator,
 		Config:             config,
 	}
@@ -251,6 +256,8 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	}
 
 	var thumbnailName string
+	var thumbnailFileID int32
+
 	if request.Thumbnail != nil {
 		thumbnailName = utility.CreateFileName(request.Thumbnail)
 		thumbnailFile := &entity.File{
@@ -262,6 +269,9 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 			slog.Error("Failed to create thumbnail file record", "error", err)
 			return nil, utility.ErrInternalServer
 		}
+
+		thumbnailFileID = thumbnailFile.ID
+		fileIDs = append(fileIDs, thumbnailFileID)
 	}
 
 	if err := s.FileRepository.LinkFilesToPost(tx, fileIDs, post.ID); err != nil {
@@ -282,6 +292,27 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	if err := tx.Commit().Error; err != nil {
 		slog.Error("Failed to commit transaction for post create", "error", err)
 		return nil, utility.ErrInternalServer
+	}
+	
+	if len(fileIDs) > 0 {
+		slog.Info("Triggering image compression", "post_id", post.ID, "file_count", len(fileIDs))
+
+		compressionResult, err := s.CompressionService.ProcessFiles(ctx, fileIDs)
+		if err != nil {
+			slog.Error("Compression process failed",
+				"post_id", post.ID,
+				"error", err,
+			)
+		} else {
+			slog.Info("Compression completed successfully",
+				"post_id", post.ID,
+				"duration", compressionResult.TotalDuration.String(),
+				"success", compressionResult.SuccessCount,
+				"failed", compressionResult.FailedCount,
+				"cpu_percent", fmt.Sprintf("%.2f%%", compressionResult.CPUPercent),
+				"peak_ram_mb", fmt.Sprintf("%.2f MB", compressionResult.PeakRAMMB),
+			)
+		}
 	}
 
 	response := &model.PostResponse{
@@ -410,6 +441,41 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	if err := tx.Commit().Error; err != nil {
 		slog.Error("Failed to commit transaction for post update", "error", err)
 		return nil, utility.ErrInternalServer
+	}
+
+	if len(currentFileIDs) > 0 {
+		var pendingFileIDs []int32
+		var files []entity.File
+		s.DB.Where("id IN ? AND status = ?", currentFileIDs, "pending").Find(&files)
+		for _, f := range files {
+			pendingFileIDs = append(pendingFileIDs, f.ID)
+		}
+
+		if len(pendingFileIDs) > 0 {
+			slog.Info("Triggering image compression for update",
+				"post_id", post.ID,
+				"file_count", len(pendingFileIDs),
+			)
+
+			compressionResult, err := s.CompressionService.ProcessFiles(ctx, pendingFileIDs)
+			if err != nil {
+				slog.Error("Compression process failed",
+					"post_id", post.ID,
+					"error", err,
+				)
+			} else {
+				slog.Info("Compression completed successfully",
+					"post_id", post.ID,
+					"duration", compressionResult.TotalDuration.String(),
+					"success", compressionResult.SuccessCount,
+					"failed", compressionResult.FailedCount,
+					"cpu_percent", fmt.Sprintf("%.2f%%", compressionResult.CPUPercent),
+					"peak_ram_mb", fmt.Sprintf("%.2f MB", compressionResult.PeakRAMMB),
+				)
+			}
+		} else {
+			slog.Info("No pending files to compress for post update", "post_id", post.ID)
+		}
 	}
 
 	if newThumbnailName == "" && oldThumbnailFile != nil && !request.DeleteThumbnail {

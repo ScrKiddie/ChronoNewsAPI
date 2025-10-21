@@ -10,12 +10,22 @@
   "captcha": {
     "secret": "YOUR_TURNSTILE_SECRET"
   },
+
   "db": {
     "user": "YOUR_DB_USER",
     "password": "YOUR_DB_PASSWORD",
     "host": "YOUR_DB_HOST",
     "port": 5432,
     "name": "YOUR_DB_NAME"
+  },
+  "compression": {
+  "is_concurrent": false,
+  "num_workers": 4,
+  "max_width": 1920,
+  "max_height": 1080,
+  "webp_quality": 75,
+  "max_retries": 3,
+  "log_level": "info"
   },
   "storage": {
     "profile": "YOUR_STORAGE_PATH",
