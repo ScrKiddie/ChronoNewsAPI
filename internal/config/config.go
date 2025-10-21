@@ -68,6 +68,14 @@ type CompressionConfig struct {
 	LogLevel     string `mapstructure:"log_level"`
 }
 
+type RabbitMQConfig struct {
+	URL          string `mapstructure:"url"`
+	Enabled      bool   `mapstructure:"enabled"`
+	QueueName    string `mapstructure:"queue_name"`
+	BatchSize    int    `mapstructure:"batch_size"`
+	BatchTimeout int    `mapstructure:"batch_timeout"`
+}
+
 type Config struct {
 	Web         WebConfig         `mapstructure:"web"`
 	DB          DBConfig          `mapstructure:"db"`
@@ -77,6 +85,7 @@ type Config struct {
 	Reset       ResetConfig       `mapstructure:"reset"`
 	SMTP        SMTPConfig        `mapstructure:"smtp"`
 	Compression CompressionConfig `mapstructure:"compression"`
+	RabbitMQ    RabbitMQConfig    `mapstructure:"rabbitmq"`
 }
 
 func NewConfig() *Config {
@@ -96,11 +105,13 @@ func NewConfig() *Config {
 		"compression.max_width", "compression.max_height",
 		"compression.webp_quality", "compression.max_retries",
 		"compression.log_level",
+		"rabbitmq.url", "rabbitmq.enabled", "rabbitmq.queue_name",
+		"rabbitmq.batch_size", "rabbitmq.batch_timeout",
 	}
 
 	for _, key := range envKeys {
 		if err := config.BindEnv(key); err != nil {
-			slog.Error("Failed to bind environment variable", "key", key, "error", err)
+			slog.Error("bind env error", "key", key, "error", err)
 			os.Exit(1)
 		}
 	}
@@ -113,13 +124,13 @@ func NewConfig() *Config {
 	if err := config.ReadInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
-			slog.Info("Config file not found; using environment variables")
+			slog.Info("config file not found using env")
 		}
 	}
 
 	var appConfig Config
 	if err := config.Unmarshal(&appConfig); err != nil {
-		slog.Error("Error unmarshalling config", "err", err)
+		slog.Error("config unmarshal error", "error", err)
 		os.Exit(1)
 	}
 
@@ -142,8 +153,18 @@ func NewConfig() *Config {
 		appConfig.Compression.LogLevel = "info"
 	}
 
+	if appConfig.RabbitMQ.QueueName == "" {
+		appConfig.RabbitMQ.QueueName = "image_compression_queue"
+	}
+	if appConfig.RabbitMQ.BatchSize == 0 {
+		appConfig.RabbitMQ.BatchSize = 50
+	}
+	if appConfig.RabbitMQ.BatchTimeout == 0 {
+		appConfig.RabbitMQ.BatchTimeout = 30
+	}
+
 	if err := validateConfig(&appConfig); err != nil {
-		slog.Error("Configuration validation failed", "error", err)
+		slog.Error("config validation failed", "error", err)
 		os.Exit(1)
 	}
 
@@ -217,7 +238,7 @@ func validateConfig(cfg *Config) error {
 		missingFields = append(missingFields, "compression.webp_quality (must be 1-100)")
 	}
 	if cfg.Compression.MaxRetries <= 0 {
-		missingFields = append(missingFields, "compression.max_retries")
+		missingFields = append(missingFields, "compression.max_retries (must be > 0)")
 	}
 	if cfg.Compression.NumWorkers <= 0 {
 		missingFields = append(missingFields, "compression.num_workers")
@@ -226,6 +247,21 @@ func validateConfig(cfg *Config) error {
 	validLogLevels := map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
 	if !validLogLevels[cfg.Compression.LogLevel] {
 		missingFields = append(missingFields, "compression.log_level (must be: debug, info, warn, or error)")
+	}
+
+	if cfg.RabbitMQ.Enabled {
+		if cfg.RabbitMQ.URL == "" {
+			missingFields = append(missingFields, "rabbitmq.url (required when enabled)")
+		}
+		if cfg.RabbitMQ.QueueName == "" {
+			missingFields = append(missingFields, "rabbitmq.queue_name")
+		}
+		if cfg.RabbitMQ.BatchSize <= 0 {
+			missingFields = append(missingFields, "rabbitmq.batch_size (must be > 0)")
+		}
+		if cfg.RabbitMQ.BatchTimeout <= 0 {
+			missingFields = append(missingFields, "rabbitmq.batch_timeout (must be > 0)")
+		}
 	}
 
 	if len(missingFields) > 0 {

@@ -18,6 +18,12 @@ type CompressionService struct {
 	Config *config.Config
 }
 
+type FileProcessResult struct {
+	FileID  int32
+	Success bool
+	Error   error
+}
+
 type CompressionResult struct {
 	TotalDuration time.Duration
 	FilesCount    int
@@ -25,6 +31,7 @@ type CompressionResult struct {
 	FailedCount   int
 	CPUPercent    float64
 	PeakRAMMB     float64
+	FileResults   []FileProcessResult
 }
 
 func NewCompressionService(db *gorm.DB, cfg *config.Config) *CompressionService {
@@ -79,22 +86,21 @@ func (cs *CompressionService) logError(msg string, args ...any) {
 		slog.Error(msg, args...)
 	}
 }
-
 func (cs *CompressionService) ProcessFiles(ctx context.Context, fileIDs []int32) (*CompressionResult, error) {
-	cs.logInfo("Starting compression process", "file_count", len(fileIDs), "mode", cs.getMode())
+	cs.logInfo("starting compression process", "file_count", len(fileIDs), "mode", cs.getMode())
 
 	var tasks []entity.File
-	err := cs.DB.Where("id IN ? AND status = ?", fileIDs, "pending").Find(&tasks).Error
+	err := cs.DB.WithContext(ctx).Where("id IN ? AND status = ?", fileIDs, "pending").Find(&tasks).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch tasks: %w", err)
 	}
 
 	if len(tasks) == 0 {
-		cs.logInfo("No pending tasks found")
+		cs.logInfo("no pending tasks found")
 		return &CompressionResult{FilesCount: 0}, nil
 	}
 
-	cs.DB.Model(&entity.File{}).Where("id IN ?", fileIDs).Update("status", "processing")
+	cs.DB.WithContext(ctx).Model(&entity.File{}).Where("id IN ?", fileIDs).Update("status", "processing")
 
 	startTime := time.Now()
 	p, _ := process.NewProcess(int32(os.Getpid()))
@@ -109,10 +115,12 @@ func (cs *CompressionService) ProcessFiles(ctx context.Context, fileIDs []int32)
 	}()
 
 	var successCount, failedCount int
+	var fileResults []FileProcessResult
+
 	if cs.Config.Compression.IsConcurrent {
-		successCount, failedCount = cs.runConcurrent(ctx, tasks)
+		successCount, failedCount, fileResults = cs.runConcurrent(ctx, tasks)
 	} else {
-		successCount, failedCount = cs.runSequential(ctx, tasks)
+		successCount, failedCount, fileResults = cs.runSequential(ctx, tasks)
 	}
 
 	close(doneMonitoring)
@@ -134,9 +142,10 @@ func (cs *CompressionService) ProcessFiles(ctx context.Context, fileIDs []int32)
 		FailedCount:   failedCount,
 		CPUPercent:    cpuPercent,
 		PeakRAMMB:     float64(peakRAM) / 1024 / 1024,
+		FileResults:   fileResults,
 	}
 
-	cs.logInfo("Compression completed",
+	cs.logInfo("compression completed",
 		"duration", duration.String(),
 		"cpu_percent", fmt.Sprintf("%.2f%%", cpuPercent),
 		"peak_ram_mb", fmt.Sprintf("%.2f MB", result.PeakRAMMB),
@@ -156,7 +165,12 @@ func (cs *CompressionService) getMode() string {
 
 func (cs *CompressionService) monitorPeakRAM(p *process.Process, done <-chan struct{}) uint64 {
 	var currentPeakRAM uint64
-	ticker := time.NewTicker(500 * time.Millisecond)
+
+	if memInfo, err := p.MemoryInfo(); err == nil {
+		currentPeakRAM = memInfo.RSS
+	}
+
+	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
 
 	for {

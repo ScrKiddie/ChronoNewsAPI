@@ -8,6 +8,7 @@ import (
 	"chrononewsapi/internal/model"
 	"chrononewsapi/internal/repository"
 	"chrononewsapi/internal/service/compression"
+	"chrononewsapi/internal/service/queue"
 	"chrononewsapi/internal/utility"
 	"context"
 	"fmt"
@@ -27,6 +28,7 @@ type PostService struct {
 	CategoryRepository *repository.CategoryRepository
 	StorageAdapter     *adapter.StorageAdapter
 	CompressionService *compression.CompressionService
+	RabbitMQService    *queue.RabbitMQService
 	Validator          *validator.Validate
 	Config             *config.Config
 }
@@ -39,6 +41,7 @@ func NewPostService(
 	categoryRepository *repository.CategoryRepository,
 	storageAdapter *adapter.StorageAdapter,
 	compressionService *compression.CompressionService,
+	rabbitMQService *queue.RabbitMQService,
 	validator *validator.Validate,
 	config *config.Config,
 ) *PostService {
@@ -50,6 +53,7 @@ func NewPostService(
 		CategoryRepository: categoryRepository,
 		StorageAdapter:     storageAdapter,
 		CompressionService: compressionService,
+		RabbitMQService:    rabbitMQService,
 		Validator:          validator,
 		Config:             config,
 	}
@@ -293,25 +297,44 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		slog.Error("Failed to commit transaction for post create", "error", err)
 		return nil, utility.ErrInternalServer
 	}
-	
-	if len(fileIDs) > 0 {
-		slog.Info("Triggering image compression", "post_id", post.ID, "file_count", len(fileIDs))
 
-		compressionResult, err := s.CompressionService.ProcessFiles(ctx, fileIDs)
-		if err != nil {
-			slog.Error("Compression process failed",
+	if len(fileIDs) > 0 {
+		if s.RabbitMQService != nil && s.Config.RabbitMQ.Enabled {
+			slog.Info("Publishing compression tasks to queue",
 				"post_id", post.ID,
-				"error", err,
+				"file_count", len(fileIDs),
 			)
+
+			for _, fileID := range fileIDs {
+				err := s.RabbitMQService.PublishCompressionTask(ctx, fileID)
+				if err != nil {
+					slog.Error("Failed to publish compression task",
+						"file_id", fileID,
+						"error", err,
+					)
+				}
+			}
+
+			slog.Info("Compression tasks published successfully", "post_id", post.ID)
 		} else {
-			slog.Info("Compression completed successfully",
-				"post_id", post.ID,
-				"duration", compressionResult.TotalDuration.String(),
-				"success", compressionResult.SuccessCount,
-				"failed", compressionResult.FailedCount,
-				"cpu_percent", fmt.Sprintf("%.2f%%", compressionResult.CPUPercent),
-				"peak_ram_mb", fmt.Sprintf("%.2f MB", compressionResult.PeakRAMMB),
-			)
+			slog.Info("Triggering image compression", "post_id", post.ID, "file_count", len(fileIDs))
+
+			compressionResult, err := s.CompressionService.ProcessFiles(ctx, fileIDs)
+			if err != nil {
+				slog.Error("Compression process failed",
+					"post_id", post.ID,
+					"error", err,
+				)
+			} else {
+				slog.Info("Compression completed successfully",
+					"post_id", post.ID,
+					"duration", compressionResult.TotalDuration.String(),
+					"success", compressionResult.SuccessCount,
+					"failed", compressionResult.FailedCount,
+					"cpu_percent", fmt.Sprintf("%.2f%%", compressionResult.CPUPercent),
+					"peak_ram_mb", fmt.Sprintf("%.2f MB", compressionResult.PeakRAMMB),
+				)
+			}
 		}
 	}
 
@@ -452,26 +475,45 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		}
 
 		if len(pendingFileIDs) > 0 {
-			slog.Info("Triggering image compression for update",
-				"post_id", post.ID,
-				"file_count", len(pendingFileIDs),
-			)
+			if s.RabbitMQService != nil && s.Config.RabbitMQ.Enabled {
+				slog.Info("Publishing compression tasks to queue for update",
+					"post_id", post.ID,
+					"file_count", len(pendingFileIDs),
+				)
 
-			compressionResult, err := s.CompressionService.ProcessFiles(ctx, pendingFileIDs)
-			if err != nil {
-				slog.Error("Compression process failed",
-					"post_id", post.ID,
-					"error", err,
-				)
+				for _, fileID := range pendingFileIDs {
+					err := s.RabbitMQService.PublishCompressionTask(ctx, fileID)
+					if err != nil {
+						slog.Error("Failed to publish compression task",
+							"file_id", fileID,
+							"error", err,
+						)
+					}
+				}
+
+				slog.Info("Compression tasks published successfully for update", "post_id", post.ID)
 			} else {
-				slog.Info("Compression completed successfully",
+				slog.Info("Triggering image compression for update",
 					"post_id", post.ID,
-					"duration", compressionResult.TotalDuration.String(),
-					"success", compressionResult.SuccessCount,
-					"failed", compressionResult.FailedCount,
-					"cpu_percent", fmt.Sprintf("%.2f%%", compressionResult.CPUPercent),
-					"peak_ram_mb", fmt.Sprintf("%.2f MB", compressionResult.PeakRAMMB),
+					"file_count", len(pendingFileIDs),
 				)
+
+				compressionResult, err := s.CompressionService.ProcessFiles(ctx, pendingFileIDs)
+				if err != nil {
+					slog.Error("Compression process failed",
+						"post_id", post.ID,
+						"error", err,
+					)
+				} else {
+					slog.Info("Compression completed successfully",
+						"post_id", post.ID,
+						"duration", compressionResult.TotalDuration.String(),
+						"success", compressionResult.SuccessCount,
+						"failed", compressionResult.FailedCount,
+						"cpu_percent", fmt.Sprintf("%.2f%%", compressionResult.CPUPercent),
+						"peak_ram_mb", fmt.Sprintf("%.2f MB", compressionResult.PeakRAMMB),
+					)
+				}
 			}
 		} else {
 			slog.Info("No pending files to compress for post update", "post_id", post.ID)

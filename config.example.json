@@ -10,7 +10,6 @@
   "captcha": {
     "secret": "YOUR_TURNSTILE_SECRET"
   },
-
   "db": {
     "user": "YOUR_DB_USER",
     "password": "YOUR_DB_PASSWORD",
@@ -19,13 +18,13 @@
     "name": "YOUR_DB_NAME"
   },
   "compression": {
-  "is_concurrent": false,
-  "num_workers": 4,
-  "max_width": 1920,
-  "max_height": 1080,
-  "webp_quality": 75,
-  "max_retries": 3,
-  "log_level": "info"
+    "is_concurrent": false,
+    "num_workers": 4,
+    "max_width": 1920,
+    "max_height": 1080,
+    "webp_quality": 75,
+    "max_retries": 3,
+    "log_level": "info"
   },
   "storage": {
     "profile": "YOUR_STORAGE_PATH",
@@ -46,6 +45,13 @@
       "name": "YOUR_NAME",
       "email": "no-reply@example.com"
     }
+  },
+  "rabbitmq": {
+    "enabled": true,
+    "url": "amqp://guest:guest@localhost:5672/",
+    "queue_name": "image_compression_queue",
+    "batch_size": 100,
+    "batch_timeout": 30
   },
   "test": {
     "jwt": {

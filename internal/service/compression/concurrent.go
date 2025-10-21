@@ -33,7 +33,7 @@ type processResult struct {
 	err  error
 }
 
-func (cs *CompressionService) runConcurrent(ctx context.Context, tasks []entity.File) (successCount, failedCount int) {
+func (cs *CompressionService) runConcurrent(ctx context.Context, tasks []entity.File) (successCount, failedCount int, fileResults []FileProcessResult) {
 	sourceDir := cs.Config.Storage.Upload
 	destDir := cs.Config.Storage.Compressed
 
@@ -69,7 +69,7 @@ SendLoop:
 	for _, task := range tasks {
 		select {
 		case <-ctx.Done():
-			cs.logWarn("Shutdown requested, stopping task dispatch")
+			cs.logWarn("shutdown requested, stopping task dispatch")
 			break SendLoop
 		case readJobs <- readJob{task: task, sourceDir: sourceDir}:
 		}
@@ -85,21 +85,31 @@ SendLoop:
 		close(results)
 	}()
 
+	fileResults = make([]FileProcessResult, 0, len(tasks))
+
 	for result := range results {
 		if result.err != nil {
 			failedCount++
 			cs.handleFailure(result.task, result.err)
+
+			fileResults = append(fileResults, FileProcessResult{
+				FileID:  result.task.ID,
+				Success: false,
+				Error:   result.err,
+			})
 		} else {
 			successCount++
 			cs.handleSuccess(result.task)
+
+			fileResults = append(fileResults, FileProcessResult{
+				FileID:  result.task.ID,
+				Success: true,
+				Error:   nil,
+			})
 		}
 	}
 
-	cs.logInfo("Concurrent pipeline completed",
-		"successful", successCount,
-		"failed", failedCount,
-	)
-
+	cs.logInfo("concurrent pipeline completed", "successful", successCount, "failed", failedCount)
 	return
 }
 
@@ -124,13 +134,13 @@ func (cs *CompressionService) readerWorker(
 			sourceFile := filepath.Join(job.sourceDir, job.task.Name)
 			file, err := os.Open(sourceFile)
 			if err != nil {
-				err = fmt.Errorf("reader[%d]: %w", workerID, err)
+				err = fmt.Errorf("reader %d: %w", workerID, err)
 				cs.logWarn(err.Error(), "file_name", job.task.Name)
 				processQueue <- processJob{task: job.task, err: err}
 				continue
 			}
 
-			cs.logDebug("File read",
+			cs.logDebug("file read",
 				"worker", fmt.Sprintf("reader-%d", workerID),
 				"file", job.task.Name,
 			)
@@ -163,14 +173,14 @@ func (cs *CompressionService) processorWorker(
 				continue
 			}
 
-			cs.logDebug("Processing image",
+			cs.logDebug("processing image",
 				"worker", fmt.Sprintf("processor-%d", workerID),
 				"file", job.task.Name,
 			)
 
 			processedReader, err := cs.processImageWithReader(job.reader)
 			if err != nil {
-				err = fmt.Errorf("processor[%d]: %w", workerID, err)
+				err = fmt.Errorf("processor %d: %w", workerID, err)
 				cs.logWarn(err.Error(), "file_name", job.task.Name)
 				writeQueue <- writeJob{task: job.task, err: err}
 				continue
@@ -212,7 +222,7 @@ func (cs *CompressionService) writerWorker(
 				continue
 			}
 
-			cs.logDebug("Writing file",
+			cs.logDebug("writing file",
 				"worker", fmt.Sprintf("writer-%d", workerID),
 				"destination", job.destination,
 			)
@@ -221,7 +231,7 @@ func (cs *CompressionService) writerWorker(
 			if err != nil {
 				results <- processResult{
 					task: job.task,
-					err:  fmt.Errorf("writer[%d]: failed to create file: %w", workerID, err),
+					err:  fmt.Errorf("writer %d: failed to create file: %w", workerID, err),
 				}
 				job.reader.Close()
 				continue
@@ -234,7 +244,7 @@ func (cs *CompressionService) writerWorker(
 			if err != nil {
 				results <- processResult{
 					task: job.task,
-					err:  fmt.Errorf("writer[%d]: failed to write: %w", workerID, err),
+					err:  fmt.Errorf("writer %d: failed to write: %w", workerID, err),
 				}
 				continue
 			}
@@ -242,7 +252,7 @@ func (cs *CompressionService) writerWorker(
 			if closeErr != nil {
 				results <- processResult{
 					task: job.task,
-					err:  fmt.Errorf("writer[%d]: failed to close: %w", workerID, closeErr),
+					err:  fmt.Errorf("writer %d: failed to close: %w", workerID, closeErr),
 				}
 				continue
 			}
