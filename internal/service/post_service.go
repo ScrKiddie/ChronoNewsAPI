@@ -12,6 +12,8 @@ import (
 	"log/slog"
 	"math"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
@@ -53,8 +55,21 @@ func NewPostService(
 func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[]model.PostResponseWithPreload, *model.Pagination, error) {
 	db := s.DB.WithContext(ctx)
 
+	var excludeIDs []uint
+	if request.ExcludeIDs != "" {
+		idStrs := strings.Split(request.ExcludeIDs, ",")
+		for _, idStr := range idStrs {
+			id, err := strconv.ParseUint(strings.TrimSpace(idStr), 10, 32)
+			if err != nil {
+				slog.Error("Failed to parse excludeIds", "idStr", idStr, "error", err)
+				return nil, nil, utility.ErrBadRequest
+			}
+			excludeIDs = append(excludeIDs, uint(id))
+		}
+	}
+
 	var posts []entity.Post
-	total, err := s.PostRepository.Search(db, request, &posts)
+	total, err := s.PostRepository.Search(db, request, &posts, excludeIDs)
 	if err != nil {
 		slog.Error("Failed to search posts", "error", err)
 		return nil, nil, utility.ErrInternalServer

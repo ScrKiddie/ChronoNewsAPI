@@ -46,6 +46,7 @@ type PostSearch struct {
 	Sort         string
 	StartDate    int64
 	EndDate      int64
+	ExcludeIDs   string
 }
 
 type PostCreate struct {

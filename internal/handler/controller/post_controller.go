@@ -33,6 +33,7 @@ func NewPostController(postService *service.PostService) *PostController {
 // @Param sort query string false "Sort by: view_count, -view_count, created_at, -created_at"
 // @Param startDate query int false "Filter posts published after this date (timestamp)"
 // @Param endDate query int false "Filter posts published before this date (timestamp)"
+// @Param excludeIds query string false "Comma-separated list of post IDs to exclude"
 // @Success 200 {object} utility.PaginationResponse{data=[]model.PostResponseWithPreload,pagination=[]model.Pagination}
 // @Failure 400 {object} utility.ResponseError
 // @Failure 500 {object} utility.ResponseError
@@ -70,6 +71,7 @@ func (c *PostController) Search(w http.ResponseWriter, r *http.Request) {
 		Sort:         r.URL.Query().Get("sort"),
 		StartDate:    startDate,
 		EndDate:      endDate,
+		ExcludeIDs:   r.URL.Query().Get("excludeIds"),
 	}
 	posts, pagination, err := c.PostService.Search(r.Context(), request)
 	if err != nil {

@@ -17,7 +17,7 @@ func NewPostRepository() *PostRepository {
 	return &PostRepository{}
 }
 
-func (r *PostRepository) Search(db *gorm.DB, request *model.PostSearch, posts *[]entity.Post) (int64, error) {
+func (r *PostRepository) Search(db *gorm.DB, request *model.PostSearch, posts *[]entity.Post, excludeIDs []uint) (int64, error) {
 	query := db.Preload("User").
 		Preload("Category").
 		Preload("Files", "type = ?", constant.FileTypeThumbnail)
@@ -52,6 +52,10 @@ func (r *PostRepository) Search(db *gorm.DB, request *model.PostSearch, posts *[
 
 	if request.UserID != 0 {
 		query = query.Where("post.user_id = ?", request.UserID)
+	}
+
+	if len(excludeIDs) > 0 {
+		query = query.Where("post.id NOT IN ?", excludeIDs)
 	}
 
 	orderMap := map[string]string{
