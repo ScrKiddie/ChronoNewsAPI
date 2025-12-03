@@ -92,7 +92,6 @@ definitions:
         maxLength: 255
         type: string
       tokenCaptcha:
-        minLength: 100
         type: string
     required:
     - email
@@ -102,7 +101,6 @@ definitions:
     properties:
       code:
         maxLength: 255
-        minLength: 36
         type: string
       confirmPassword:
         type: string
@@ -125,7 +123,6 @@ definitions:
         minLength: 8
         type: string
       tokenCaptcha:
-        minLength: 100
         type: string
     required:
     - email
@@ -486,6 +483,10 @@ paths:
         in: query
         name: endDate
         type: integer
+      - description: Comma-separated list of post IDs to exclude
+        in: query
+        name: excludeIds
+        type: string
       produces:
       - application/json
       responses:
@@ -808,10 +809,6 @@ paths:
             $ref: '#/definitions/utility.ResponseSuccess'
         "400":
           description: Bad Request
-          schema:
-            $ref: '#/definitions/utility.ResponseError'
-        "404":
-          description: Not Found
           schema:
             $ref: '#/definitions/utility.ResponseError'
         "500":

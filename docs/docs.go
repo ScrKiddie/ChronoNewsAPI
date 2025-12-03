@@ -497,6 +497,12 @@ const docTemplate = `{
                         "description": "Filter posts published before this date (timestamp)",
                         "name": "endDate",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of post IDs to exclude",
+                        "name": "excludeIds",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -992,12 +998,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/utility.ResponseError"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utility.ResponseError"
                         }
@@ -1851,8 +1851,7 @@ const docTemplate = `{
                     "maxLength": 255
                 },
                 "tokenCaptcha": {
-                    "type": "string",
-                    "minLength": 100
+                    "type": "string"
                 }
             }
         },
@@ -1866,8 +1865,7 @@ const docTemplate = `{
             "properties": {
                 "code": {
                     "type": "string",
-                    "maxLength": 255,
-                    "minLength": 36
+                    "maxLength": 255
                 },
                 "confirmPassword": {
                     "type": "string"
@@ -1897,8 +1895,7 @@ const docTemplate = `{
                     "minLength": 8
                 },
                 "tokenCaptcha": {
-                    "type": "string",
-                    "minLength": 100
+                    "type": "string"
                 }
             }
         },

@@ -153,7 +153,7 @@ func (s *ResetService) Reset(ctx context.Context, request *model.ResetRequest) e
 	reset := &entity.Reset{}
 	if err := s.ResetRepository.FindByCode(tx, reset, request.Code); err != nil {
 		slog.Error("Failed to find reset token by code", "error", err)
-		return utility.ErrNotFound
+		return utility.NewCustomError(400, "Kode reset tidak valid")
 	}
 
 	if reset.ExpiredAt < time.Now().Unix() {
@@ -165,7 +165,7 @@ func (s *ResetService) Reset(ctx context.Context, request *model.ResetRequest) e
 			slog.Error("Failed to commit transaction for deleting expired reset token", "error", err)
 			return utility.ErrInternalServer
 		}
-		return utility.ErrBadRequest
+		return utility.NewCustomError(400, "Kode reset tidak valid")
 	}
 
 	user := new(entity.User)

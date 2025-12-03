@@ -217,7 +217,7 @@ func TestResetEndpoints(t *testing.T) {
 			err := resp.Body.Close()
 			assert.NoError(t, err)
 		}()
-		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 
 	t.Run("Reset Password - Expired Code", func(t *testing.T) {

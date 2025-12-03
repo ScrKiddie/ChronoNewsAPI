@@ -54,7 +54,6 @@ func (c *ResetController) RequestResetEmail(w http.ResponseWriter, r *http.Reque
 // @Param resetRequest body model.ResetRequest true "Request containing reset code and new password"
 // @Success 200 {object} utility.ResponseSuccess
 // @Failure 400 {object} utility.ResponseError
-// @Failure 404 {object} utility.ResponseError
 // @Failure 500 {object} utility.ResponseError
 // @Router /api/reset/password [post]
 func (c *ResetController) Reset(w http.ResponseWriter, r *http.Request) {
