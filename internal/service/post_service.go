@@ -94,13 +94,10 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 			UpdatedAt: post.UpdatedAt,
 			Thumbnail: thumbnail,
 			ViewCount: post.ViewCount,
-			User: &model.UserResponse{
+			User: &model.UserPublicResponse{
 				ID:             post.User.ID,
 				Name:           post.User.Name,
 				ProfilePicture: post.User.ProfilePicture,
-				PhoneNumber:    post.User.PhoneNumber,
-				Email:          post.User.Email,
-				Role:           post.User.Role,
 			},
 			Category: &model.CategoryResponse{
 				ID:   post.Category.ID,
@@ -166,13 +163,10 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		Content:   rebuiltContent,
 		ViewCount: post.ViewCount,
 		Thumbnail: thumbnail,
-		User: &model.UserResponse{
+		User: &model.UserPublicResponse{
 			ID:             post.User.ID,
 			Name:           post.User.Name,
 			ProfilePicture: post.User.ProfilePicture,
-			PhoneNumber:    post.User.PhoneNumber,
-			Email:          post.User.Email,
-			Role:           post.User.Role,
 		},
 		Category: &model.CategoryResponse{
 			ID:   post.Category.ID,

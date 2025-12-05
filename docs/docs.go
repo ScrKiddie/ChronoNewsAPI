@@ -1832,7 +1832,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "user": {
-                    "$ref": "#/definitions/model.UserResponse"
+                    "$ref": "#/definitions/model.UserPublicResponse"
                 },
                 "viewCount": {
                     "type": "integer"
@@ -1895,6 +1895,20 @@ const docTemplate = `{
                     "minLength": 8
                 },
                 "tokenCaptcha": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UserPublicResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "profilePicture": {
                     "type": "string"
                 }
             }
