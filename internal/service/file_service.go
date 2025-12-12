@@ -71,6 +71,6 @@ func (s *FileService) UploadImage(ctx context.Context, fileHeader *multipart.Fil
 
 	return &model.ImageUploadResponse{
 		ID:   fileEntity.ID,
-		Name: fileEntity.Name,
+		Name: utility.BuildImageURL(s.Config, s.Config.Storage.Post, fileEntity.Name),
 	}, nil
 }

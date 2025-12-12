@@ -1,22 +1,68 @@
 package adapter
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log/slog"
 	"mime/multipart"
+	"net/url"
 	"os"
 	"path/filepath"
+
+	appConfig "chrononewsapi/internal/config"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type StorageAdapter struct {
+	mode   string
+	client *s3.Client
+	bucket string
 }
 
-func NewStorageAdapter() *StorageAdapter {
-	return &StorageAdapter{}
+func NewStorageAdapter(cfg *appConfig.Config, s3Client *s3.Client) *StorageAdapter {
+	return &StorageAdapter{
+		mode:   cfg.Storage.Mode,
+		client: s3Client,
+		bucket: cfg.Storage.S3.Bucket,
+	}
 }
 
-func (f *StorageAdapter) Store(file *multipart.FileHeader, path string) error {
+func (s *StorageAdapter) Store(file *multipart.FileHeader, path string) error {
+	if s.mode == "s3" {
+		if s.client == nil {
+
+			return errors.New("s3 client is not initialized")
+		}
+		fileOpened, err := file.Open()
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if cerr := fileOpened.Close(); cerr != nil {
+				slog.Warn("Error closing S3 file source", "error", cerr)
+			}
+		}()
+
+		s3Key := filepath.ToSlash(path)
+
+		contentType := file.Header.Get("Content-Type")
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+
+		_, err = s.client.PutObject(context.TODO(), &s3.PutObjectInput{
+			Bucket:      aws.String(s.bucket),
+			Key:         aws.String(s3Key),
+			Body:        fileOpened,
+			ContentType: aws.String(contentType),
+		})
+		return err
+	}
+
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
@@ -25,22 +71,24 @@ func (f *StorageAdapter) Store(file *multipart.FileHeader, path string) error {
 	if err != nil {
 		return err
 	}
-	defer func(fileOpened multipart.File) {
-		err := fileOpened.Close()
-		if err != nil {
-			slog.Error("Failed to close opened multipart file", "err", err)
+
+	defer func() {
+		if cerr := fileOpened.Close(); cerr != nil {
+			slog.Warn("Error closing opened file", "error", cerr)
 		}
-	}(fileOpened)
+	}()
+
 	fileStored, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	defer func(fileStored *os.File) {
-		err := fileStored.Close()
-		if err != nil {
-			slog.Error("Failed to close stored file", "err", err)
+
+	defer func() {
+		if cerr := fileStored.Close(); cerr != nil {
+			slog.Warn("Error closing stored file", "error", cerr)
 		}
-	}(fileStored)
+	}()
+
 	_, err = io.Copy(fileStored, fileOpened)
 	if err != nil {
 		_ = os.Remove(path)
@@ -49,19 +97,52 @@ func (f *StorageAdapter) Store(file *multipart.FileHeader, path string) error {
 	return nil
 }
 
-func (f *StorageAdapter) Delete(path string) error {
+func (s *StorageAdapter) Delete(path string) error {
+	if s.mode == "s3" {
+		if s.client == nil {
+
+			return errors.New("s3 client is not initialized")
+		}
+		s3Key := filepath.ToSlash(path)
+		_, err := s.client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+			Bucket: aws.String(s.bucket),
+			Key:    aws.String(s3Key),
+		})
+		return err
+	}
+
 	err := os.Remove(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			slog.Warn("File already deleted or not exists", "path", path)
+			slog.Warn("Attempted to delete a non-existent local file", "path", path)
 			return nil
 		}
 		return err
 	}
+
 	return nil
 }
 
-func (f *StorageAdapter) Copy(fileName, tempDir, destDir string) error {
+func (s *StorageAdapter) Copy(fileName, tempDir, destDir string) error {
+	if s.mode == "s3" {
+		if s.client == nil {
+
+			return errors.New("s3 client is not initialized")
+		}
+		sourceKey := filepath.ToSlash(filepath.Join(tempDir, fileName))
+		destKey := filepath.ToSlash(filepath.Join(destDir, fileName))
+
+		copySource := "/" + s.bucket + "/" + sourceKey
+		encodedCopySource := url.PathEscape(copySource)
+
+		_, err := s.client.CopyObject(context.TODO(), &s3.CopyObjectInput{
+			Bucket:     aws.String(s.bucket),
+			Key:        aws.String(destKey),
+			CopySource: aws.String(encodedCopySource),
+		})
+		return err
+	}
+
 	tempPath := filepath.Join(tempDir, fileName)
 	destPath := filepath.Join(destDir, fileName)
 
@@ -73,28 +154,24 @@ func (f *StorageAdapter) Copy(fileName, tempDir, destDir string) error {
 	if err != nil {
 		return err
 	}
-	defer func(tempFile *os.File) {
-		err := tempFile.Close()
-		if err != nil {
-			slog.Error("Failed to close temporary file during copy", "err", err)
+
+	defer func() {
+		if cerr := tempFile.Close(); cerr != nil {
+			slog.Warn("Error closing temp file", "error", cerr)
 		}
-	}(tempFile)
+	}()
 
 	destFile, err := os.Create(destPath)
 	if err != nil {
 		return err
 	}
-	defer func(destFile *os.File) {
-		err := destFile.Close()
-		if err != nil {
-			slog.Error("Failed to close destination file during copy", "err", err)
+
+	defer func() {
+		if cerr := destFile.Close(); cerr != nil {
+			slog.Warn("Error closing destination file", "error", cerr)
 		}
-	}(destFile)
+	}()
 
 	_, err = io.Copy(destFile, tempFile)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

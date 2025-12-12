@@ -78,7 +78,10 @@ func TestFileEndpoints(t *testing.T) {
 		assert.NotZero(t, result.Data.ID, "Image ID should not be zero")
 
 		t.Cleanup(func() {
-			filePath := filepath.Join(appConfig.Storage.Post, result.Data.Name)
+
+			fileName := filepath.Base(result.Data.Name)
+
+			filePath := filepath.Join(appConfig.Storage.Post, fileName)
 			err := os.Remove(filePath)
 			assert.NoError(t, err, "Failed to delete uploaded test file")
 		})

@@ -11,6 +11,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+type TestWebConfig struct {
+	Port        string `mapstructure:"port"`
+	CorsOrigins string `mapstructure:"cors_origins"`
+}
+
 type TestCaptchaSecretConfig struct {
 	Pass  string `mapstructure:"pass"`
 	Fail  string `mapstructure:"fail"`
@@ -22,13 +27,12 @@ type TestCaptchaConfig struct {
 }
 
 type TestConfig struct {
-	JWT     config.JWTConfig     `mapstructure:"jwt"`
-	Web     config.WebConfig     `mapstructure:"web"`
-	Captcha TestCaptchaConfig    `mapstructure:"captcha"`
-	DB      config.DBConfig      `mapstructure:"db"`
-	Reset   config.ResetConfig   `mapstructure:"reset"`
-	SMTP    config.SMTPConfig    `mapstructure:"smtp"`
-	Storage config.StorageConfig `mapstructure:"storage"`
+	JWT     config.JWTConfig   `mapstructure:"jwt"`
+	Web     TestWebConfig      `mapstructure:"web"`
+	Captcha TestCaptchaConfig  `mapstructure:"captcha"`
+	DB      config.DBConfig    `mapstructure:"db"`
+	Reset   config.ResetConfig `mapstructure:"reset"`
+	SMTP    config.SMTPConfig  `mapstructure:"smtp"`
 }
 
 type TestConfigWrapper struct {
@@ -47,7 +51,6 @@ func loadTestConfig() *TestConfig {
 		"test.reset.url", "test.reset.query", "test.reset.request_url", "test.reset.exp",
 		"test.smtp.host", "test.smtp.port", "test.smtp.username", "test.smtp.password",
 		"test.smtp.from.name", "test.smtp.from.email",
-		"test.storage.profile", "test.storage.post",
 	}
 
 	for _, key := range envKeys {
@@ -72,7 +75,7 @@ func loadTestConfig() *TestConfig {
 
 	var testCfgWrapper TestConfigWrapper
 	if err := v.Unmarshal(&testCfgWrapper); err != nil {
-		slog.Error("Failed to unmarshal test config. Check TEST_* env vars or 'test' block in config.json.", "error", err)
+		slog.Error("Failed to unmarshal test config.", "error", err)
 		os.Exit(1)
 	}
 
@@ -113,12 +116,6 @@ func validateTestConfig(cfg *TestConfig) error {
 
 	if cfg.Captcha.Secret.Pass == "" {
 		missingFields = append(missingFields, "test.captcha.secret.pass")
-	}
-	if cfg.Captcha.Secret.Fail == "" {
-		missingFields = append(missingFields, "test.captcha.secret.fail")
-	}
-	if cfg.Captcha.Secret.Usage == "" {
-		missingFields = append(missingFields, "test.captcha.secret.usage")
 	}
 
 	if cfg.Reset.URL == "" {

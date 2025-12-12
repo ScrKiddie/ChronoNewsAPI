@@ -9,12 +9,13 @@ import (
 	"chrononewsapi/internal/service"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
 )
 
-func Init(app *chi.Mux, db *gorm.DB, config *config.Config, validator *validator.Validate, client *http.Client) {
+func Init(app *chi.Mux, db *gorm.DB, config *config.Config, validator *validator.Validate, httpClient *http.Client, s3Client *s3.Client) {
 	// Repository
 	userRepository := repository.NewUserRepository()
 	categoryRepository := repository.NewCategoryRepository()
@@ -23,8 +24,8 @@ func Init(app *chi.Mux, db *gorm.DB, config *config.Config, validator *validator
 	resetRepository := repository.NewResetRepository()
 
 	// Adapter
-	storageAdapter := adapter.NewStorageAdapter()
-	captchaAdapter := adapter.NewCaptchaAdapter(client)
+	storageAdapter := adapter.NewStorageAdapter(config, s3Client)
+	captchaAdapter := adapter.NewCaptchaAdapter(httpClient)
 	emailAdapter := adapter.NewEmailAdapter()
 
 	// Service

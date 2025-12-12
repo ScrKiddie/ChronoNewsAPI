@@ -15,6 +15,7 @@ type FromConfig struct {
 }
 
 type WebConfig struct {
+	BaseURL     string `mapstructure:"base_url"`
 	Port        string `mapstructure:"port"`
 	CorsOrigins string `mapstructure:"cors_origins"`
 }
@@ -36,9 +37,20 @@ type CaptchaConfig struct {
 	Secret string `mapstructure:"secret"`
 }
 
+type S3Config struct {
+	Bucket    string `mapstructure:"bucket"`
+	Region    string `mapstructure:"region"`
+	AccessKey string `mapstructure:"access_key"`
+	SecretKey string `mapstructure:"secret_key"`
+	Endpoint  string `mapstructure:"endpoint"`
+}
+
 type StorageConfig struct {
-	Post    string `mapstructure:"post"`
-	Profile string `mapstructure:"profile"`
+	Mode    string   `mapstructure:"mode"`
+	CdnURL  string   `mapstructure:"cdn_url"`
+	Post    string   `mapstructure:"post"`
+	Profile string   `mapstructure:"profile"`
+	S3      S3Config `mapstructure:"s3"`
 }
 
 type ResetConfig struct {
@@ -71,12 +83,23 @@ func NewConfig() *Config {
 	config.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	envKeys := []string{
+
+		"web.base_url",
 		"web.port", "web.cors_origins",
+
 		"db.user", "db.password", "db.host", "db.port", "db.name",
+
 		"jwt.secret", "jwt.exp",
+
 		"captcha.secret",
+
+		"storage.mode",
+		"storage.cdn_url",
 		"storage.post", "storage.profile",
+		"storage.s3.bucket", "storage.s3.region", "storage.s3.access_key", "storage.s3.secret_key", "storage.s3.endpoint",
+
 		"reset.exp", "reset.url", "reset.query", "reset.request_url",
+
 		"smtp.host", "smtp.port", "smtp.username", "smtp.password",
 		"smtp.from.name", "smtp.from.email",
 	}
@@ -87,6 +110,8 @@ func NewConfig() *Config {
 			os.Exit(1)
 		}
 	}
+
+	config.SetDefault("storage.mode", "local")
 
 	config.SetConfigName("config")
 	config.SetConfigType("json")
@@ -117,6 +142,9 @@ func NewConfig() *Config {
 func validateConfig(cfg *Config) error {
 	var missingFields []string
 
+	if cfg.Web.BaseURL == "" {
+		missingFields = append(missingFields, "web.base_url")
+	}
 	if cfg.Web.Port == "" {
 		missingFields = append(missingFields, "web.port")
 	}
@@ -143,6 +171,38 @@ func validateConfig(cfg *Config) error {
 
 	if cfg.Captcha.Secret == "" {
 		missingFields = append(missingFields, "captcha.secret")
+	}
+
+	if cfg.Storage.Mode == "s3" {
+		if cfg.Storage.S3.Bucket == "" {
+			missingFields = append(missingFields, "storage.s3.bucket")
+		}
+		if cfg.Storage.S3.Region == "" {
+			slog.Warn("storage.s3.region is not set, defaulting to 'auto' for R2 compatibility")
+			cfg.Storage.S3.Region = "auto"
+		}
+		if cfg.Storage.S3.AccessKey == "" {
+			missingFields = append(missingFields, "storage.s3.access_key")
+		}
+		if cfg.Storage.S3.SecretKey == "" {
+			missingFields = append(missingFields, "storage.s3.secret_key")
+		}
+		if cfg.Storage.S3.Endpoint == "" {
+			missingFields = append(missingFields, "storage.s3.endpoint (required for Cloudflare R2)")
+		}
+
+		if cfg.Storage.CdnURL == "" {
+			missingFields = append(missingFields, "storage.cdn_url (required for S3 mode)")
+		}
+	} else if cfg.Storage.Mode == "local" {
+		if cfg.Storage.Post == "" {
+			missingFields = append(missingFields, "storage.post")
+		}
+		if cfg.Storage.Profile == "" {
+			missingFields = append(missingFields, "storage.profile")
+		}
+	} else if cfg.Storage.Mode != "" {
+		missingFields = append(missingFields, "storage.mode (must be 'local' or 's3')")
 	}
 
 	if cfg.Reset.URL == "" {

@@ -83,9 +83,8 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 	for _, post := range posts {
 		var thumbnail string
 		if len(post.Files) > 0 {
-			thumbnail = post.Files[0].Name
+			thumbnail = utility.BuildImageURL(s.Config, s.Config.Storage.Post, post.Files[0].Name)
 		}
-
 		response = append(response, model.PostResponseWithPreload{
 			ID:        post.ID,
 			Title:     post.Title,
@@ -97,7 +96,7 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 			User: &model.UserPublicResponse{
 				ID:             post.User.ID,
 				Name:           post.User.Name,
-				ProfilePicture: post.User.ProfilePicture,
+				ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, post.User.ProfilePicture),
 			},
 			Category: &model.CategoryResponse{
 				ID:   post.Category.ID,
@@ -142,6 +141,10 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 	}
 	fileMap := s.FileRepository.FindAsMap(db, fileIDs)
 
+	for id, fileName := range fileMap {
+		fileMap[id].Name = utility.BuildImageURL(s.Config, s.Config.Storage.Post, fileName.Name)
+	}
+
 	rebuiltContent, err := utility.RebuildContentWithImageSrc(post.Content, fileMap)
 	if err != nil {
 		slog.Error("Failed to rebuild content with image src", "error", err)
@@ -151,7 +154,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 	var thumbnail string
 	for _, file := range post.Files {
 		if file.Type == constant.FileTypeThumbnail {
-			thumbnail = file.Name
+			thumbnail = utility.BuildImageURL(s.Config, s.Config.Storage.Post, file.Name)
 			break
 		}
 	}
@@ -166,7 +169,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		User: &model.UserPublicResponse{
 			ID:             post.User.ID,
 			Name:           post.User.Name,
-			ProfilePicture: post.User.ProfilePicture,
+			ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, post.User.ProfilePicture),
 		},
 		Category: &model.CategoryResponse{
 			ID:   post.Category.ID,
@@ -302,7 +305,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		Content:    post.Content,
 		CreatedAt:  post.CreatedAt,
 		UpdatedAt:  post.UpdatedAt,
-		Thumbnail:  thumbnailName,
+		Thumbnail:  utility.BuildImageURL(s.Config, s.Config.Storage.Post, thumbnailName),
 	}
 
 	return response, nil
@@ -434,7 +437,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		Content:    post.Content,
 		CreatedAt:  post.CreatedAt,
 		UpdatedAt:  post.UpdatedAt,
-		Thumbnail:  newThumbnailName,
+		Thumbnail:  utility.BuildImageURL(s.Config, s.Config.Storage.Post, newThumbnailName),
 	}
 
 	return response, nil

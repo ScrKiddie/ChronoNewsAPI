@@ -4,7 +4,10 @@ import (
 	"chrononewsapi/internal/config"
 	"chrononewsapi/internal/handler/controller"
 	"chrononewsapi/internal/handler/middleware"
+	"fmt"
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -56,9 +59,23 @@ func (r *Route) Setup() {
 		})
 	})
 
-	profilePicturePath := r.Config.Storage.Profile
-	postPicturePath := r.Config.Storage.Post
+	if r.Config.Storage.Mode == "local" {
 
-	r.App.Handle("/profile_picture/*", http.StripPrefix("/profile_picture/", http.FileServer(http.Dir(profilePicturePath))))
-	r.App.Handle("/post_picture/*", http.StripPrefix("/post_picture/", http.FileServer(http.Dir(postPicturePath))))
+		serveStatic := func(pathFromConfig string) {
+
+			cleanInput := strings.TrimLeft(pathFromConfig, "/\\.")
+
+			physicalPath := filepath.Join(".", cleanInput)
+
+			urlPath := filepath.ToSlash(physicalPath)
+
+			routePattern := fmt.Sprintf("/%s/*", urlPath)
+			prefix := fmt.Sprintf("/%s", urlPath)
+
+			r.App.Handle(routePattern, http.StripPrefix(prefix, http.FileServer(http.Dir(physicalPath))))
+		}
+
+		serveStatic(r.Config.Storage.Profile)
+		serveStatic(r.Config.Storage.Post)
+	}
 }

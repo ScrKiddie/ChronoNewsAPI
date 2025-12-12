@@ -31,13 +31,23 @@ var (
 
 func convertTestConfigToAppConfig(testCfg *TestConfig) *config.Config {
 	return &config.Config{
-		Web:     testConfig.Web,
-		DB:      testConfig.DB,
-		JWT:     testConfig.JWT,
+		Web: config.WebConfig{
+			Port:        testCfg.Web.Port,
+			CorsOrigins: testCfg.Web.CorsOrigins,
+
+			BaseURL: fmt.Sprintf("http://localhost:%s", testCfg.Web.Port),
+		},
+		DB:      testCfg.DB,
+		JWT:     testCfg.JWT,
 		Captcha: config.CaptchaConfig{Secret: testCfg.Captcha.Secret.Pass},
-		Storage: testConfig.Storage,
-		Reset:   testConfig.Reset,
-		SMTP:    testConfig.SMTP,
+
+		Storage: config.StorageConfig{
+			Mode:   "local",
+			CdnURL: "",
+		},
+
+		Reset: testCfg.Reset,
+		SMTP:  testCfg.SMTP,
 	}
 }
 
@@ -55,12 +65,20 @@ func setupTestServer() {
 		os.Exit(1)
 	}
 
-	appConfig.Storage.Post = filepath.Join(testTempDir, "posts")
-	appConfig.Storage.Profile = filepath.Join(testTempDir, "profiles")
+	postsDir := filepath.Join(testTempDir, "posts")
+	profilesDir := filepath.Join(testTempDir, "profiles")
+
+	_ = os.MkdirAll(postsDir, 0755)
+	_ = os.MkdirAll(profilesDir, 0755)
+
+	appConfig.Storage.Post = postsDir
+	appConfig.Storage.Profile = profilesDir
 
 	validator := config.NewValidator()
 	client := config.NewClient()
-	bootstrap.Init(testRouter, testDB, appConfig, validator, client)
+
+	bootstrap.Init(testRouter, testDB, appConfig, validator, client, nil)
+
 	err = testDB.AutoMigrate(&entity.User{}, &entity.Category{}, &entity.Post{}, &entity.File{}, &entity.Reset{})
 	if err != nil {
 		slog.Error("Failed to auto migrate database for tests", "err", err)

@@ -1,14 +1,8 @@
 {
-  "jwt": {
-    "secret": "YOUR_SECRET_JWT",
-    "exp": 24
-  },
   "web": {
-    "port": "3000",
+    "base_url": "YOUR_APP_BASE_URL",
+    "port": "YOUR_APP_PORT",
     "cors_origins": "*,https://example.com,https://anotherdomain.com"
-  },
-  "captcha": {
-    "secret": "YOUR_TURNSTILE_SECRET"
   },
   "db": {
     "user": "YOUR_DB_USER",
@@ -17,34 +11,50 @@
     "port": 5432,
     "name": "YOUR_DB_NAME"
   },
+  "jwt": {
+    "secret": "YOUR_JWT_SECRET_KEY",
+    "exp": 24
+  },
+  "captcha": {
+    "secret": "YOUR_TURNSTILE_SECRET_KEY"
+  },
   "storage": {
-    "profile": "YOUR_STORAGE_PATH",
-    "post": "YOUR_STORAGE_PATH"
+    "mode": "YOUR_STORAGE_MODE",
+    "cdn_url": "YOUR_R2_OR_S3_CDN_URL",
+    "post": "./storage/post_picture",
+    "profile": "./storage/profile_picture",
+    "s3": {
+      "bucket": "YOUR_S3_BUCKET_NAME",
+      "region": "YOUR_S3_REGION",
+      "access_key": "YOUR_S3_ACCESS_KEY",
+      "secret_key": "YOUR_S3_SECRET_KEY",
+      "endpoint": "YOUR_S3_ENDPOINT_URL"
+    }
   },
   "reset": {
-    "url": "https://example.com/reset",
+    "exp": 2,
+    "url": "YOUR_FRONTEND_RESET_PASSWORD_URL",
     "query": "code",
-    "request_url": "https://example.com/forgot",
-    "exp": 2
+    "request_url": "YOUR_FRONTEND_FORGOT_PASSWORD_URL"
   },
   "smtp": {
-    "host": "smtp.example.com",
+    "host": "YOUR_SMTP_HOST",
     "port": 587,
-    "username": "your_email@example.com",
-    "password": "your_email_password",
+    "username": "YOUR_SMTP_USERNAME",
+    "password": "YOUR_SMTP_PASSWORD",
     "from": {
-      "name": "YOUR_NAME",
-      "email": "no-reply@example.com"
+      "name": "YOUR_SENDER_NAME",
+      "email": "YOUR_SENDER_EMAIL"
     }
   },
   "test": {
     "jwt": {
-      "secret": "YOUR_SECRET_JWT",
+      "secret": "YOUR_TEST_JWT_SECRET",
       "exp": 24
     },
     "web": {
-      "port": "3000",
-      "cors_origins": "*,https://example.com,https://anotherdomain.com"
+      "port": "YOUR_TEST_APP_PORT",
+      "cors_origins": "*"
     },
     "captcha": {
       "secret": {
@@ -54,30 +64,26 @@
       }
     },
     "db": {
-      "user": "YOUR_DB_USER",
-      "password": "YOUR_DB_PASSWORD",
-      "host": "YOUR_DB_HOST",
+      "user": "YOUR_TEST_DB_USER",
+      "password": "YOUR_TEST_DB_PASSWORD",
+      "host": "YOUR_TEST_DB_HOST",
       "port": 5432,
-      "name": "YOUR_DB_NAME"
-    },
-    "storage": {
-      "profile": "YOUR_STORAGE_PATH",
-      "post": "YOUR_STORAGE_PATH"
+      "name": "YOUR_TEST_DB_NAME"
     },
     "reset": {
-      "url": "https://example.com/reset",
+      "url": "YOUR_TEST_RESET_URL",
       "query": "code",
-      "request_url": "https://example.com/forgot",
+      "request_url": "YOUR_TEST_FORGOT_URL",
       "exp": 2
     },
     "smtp": {
-      "host": "smtp.example.com",
-      "port": 587,
-      "username": "your_email@example.com",
-      "password": "your_email_password",
+      "host": "localhost",
+      "port": 1025,
+      "username": "",
+      "password": "",
       "from": {
-        "name": "YOUR_NAME",
-        "email": "no-reply@example.com"
+        "name": "YOUR_TEST_SENDER_NAME",
+        "email": "YOUR_TEST_SENDER_EMAIL"
       }
     }
   }

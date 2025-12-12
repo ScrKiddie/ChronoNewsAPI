@@ -122,7 +122,7 @@ func (s *UserService) Current(ctx context.Context, request *model.Auth) (*model.
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: user.ProfilePicture,
+		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, user.ProfilePicture),
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,
@@ -195,7 +195,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: user.ProfilePicture,
+		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, user.ProfilePicture),
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,
@@ -266,7 +266,7 @@ func (s *UserService) Search(ctx context.Context, request *model.UserSearch, aut
 		response = append(response, model.UserResponse{
 			ID:             v.ID,
 			Name:           v.Name,
-			ProfilePicture: v.ProfilePicture,
+			ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, v.ProfilePicture),
 			PhoneNumber:    v.PhoneNumber,
 			Email:          v.Email,
 			Role:           v.Role,
@@ -314,7 +314,7 @@ func (s *UserService) Get(ctx context.Context, request *model.UserGet, auth *mod
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: user.ProfilePicture,
+		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, user.ProfilePicture),
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,
@@ -422,7 +422,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: user.ProfilePicture,
+		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, user.ProfilePicture),
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,
@@ -520,7 +520,7 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: user.ProfilePicture,
+		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, user.ProfilePicture),
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,

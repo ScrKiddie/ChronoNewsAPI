@@ -416,7 +416,7 @@ func TestUserEndpoints(t *testing.T) {
 		oldPictureName := createdUserResponse.Data.ProfilePicture
 		assert.NotEmpty(t, oldPictureName)
 
-		createdFilePath := filepath.Join(appConfig.Storage.Profile, oldPictureName)
+		createdFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureName))
 		_, err = os.Stat(createdFilePath)
 		assert.NoError(t, err, "Profile picture file should exist in storage after creation")
 
@@ -445,7 +445,7 @@ func TestUserEndpoints(t *testing.T) {
 		testDB.First(&updatedUser, userIDToDeletePic)
 		assert.Empty(t, updatedUser.ProfilePicture, "ProfilePicture field in DB should be empty")
 
-		filePath := filepath.Join(appConfig.Storage.Profile, oldPictureName)
+		filePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureName))
 		_, err = os.Stat(filePath)
 		assert.True(t, os.IsNotExist(err), "Old profile picture file should be deleted from storage")
 	})
@@ -459,7 +459,7 @@ func TestUserEndpoints(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, oldPictureName, "First picture name should not be empty")
 
-		oldFilePath := filepath.Join(appConfig.Storage.Profile, oldPictureName)
+		oldFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureName))
 		_, err = os.Stat(oldFilePath)
 		assert.NoError(t, err, "First profile picture should exist before replacement")
 
@@ -470,7 +470,7 @@ func TestUserEndpoints(t *testing.T) {
 
 		_, err = os.Stat(oldFilePath)
 		assert.True(t, os.IsNotExist(err), "Old profile picture file should be deleted after replacement")
-		newFilePath := filepath.Join(appConfig.Storage.Profile, newPictureName)
+		newFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(newPictureName))
 		_, err = os.Stat(newFilePath)
 		assert.NoError(t, err, "New profile picture file should exist after replacement")
 	})
@@ -694,7 +694,7 @@ func TestUserEndpoints(t *testing.T) {
 		oldPictureName := userResp1.Data.ProfilePicture
 		assert.NotEmpty(t, oldPictureName, "Initial picture name should not be empty")
 
-		oldFilePath := filepath.Join(appConfig.Storage.Profile, oldPictureName)
+		oldFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureName))
 		_, err = os.Stat(oldFilePath)
 		assert.NoError(t, err, "Initial profile picture should exist before replacement")
 
@@ -709,7 +709,7 @@ func TestUserEndpoints(t *testing.T) {
 
 		_, err = os.Stat(oldFilePath)
 		assert.True(t, os.IsNotExist(err), "Old profile picture file should be deleted after replacement")
-		newFilePath := filepath.Join(appConfig.Storage.Profile, newPictureName)
+		newFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(newPictureName))
 		_, err = os.Stat(newFilePath)
 		assert.NoError(t, err, "New profile picture file should exist after replacement")
 	})
@@ -745,7 +745,7 @@ func TestUserEndpoints(t *testing.T) {
 		pictureNameToDelete := uploadResp.Data.ProfilePicture
 		assert.NotEmpty(t, pictureNameToDelete, "Picture name should not be empty after upload")
 
-		filePath := filepath.Join(appConfig.Storage.Profile, pictureNameToDelete)
+		filePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(pictureNameToDelete))
 		_, err = os.Stat(filePath)
 		assert.NoError(t, err, "Profile picture file should exist in storage before deletion")
 
@@ -887,7 +887,7 @@ func TestUserEndpoints(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		if profilePictureName != "" {
-			filePath := filepath.Join(appConfig.Storage.Profile, profilePictureName)
+			filePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(profilePictureName))
 			_, err := os.Stat(filePath)
 			assert.True(t, os.IsNotExist(err), "Profile picture file should be deleted from storage")
 		}

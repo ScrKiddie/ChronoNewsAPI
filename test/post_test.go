@@ -116,7 +116,9 @@ func TestPostEndpoints(t *testing.T) {
 		assert.NotEmpty(t, result.Data.Thumbnail, "Thumbnail should be present in response")
 		newPostID = result.Data.ID
 
-		filePath := filepath.Join(appConfig.Storage.Post, result.Data.Thumbnail)
+		fileName := filepath.Base(result.Data.Thumbnail)
+
+		filePath := filepath.Join(appConfig.Storage.Post, fileName)
 		_, err = os.Stat(filePath)
 		assert.NoError(t, err, "Thumbnail file should exist in storage after post creation")
 	})
