@@ -35,6 +35,7 @@ type DBConfig struct {
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
 	Name     string `mapstructure:"name"`
+	SslMode  string `mapstructure:"sslmode"`
 }
 
 type JWTConfig struct {
@@ -92,7 +93,7 @@ func NewConfig() *Config {
 		"web.base_url", "web.port", "web.cors_origins", "web.client_url",
 		"web.client_paths.post", "web.client_paths.category", "web.client_paths.reset", "web.client_paths.forgot",
 
-		"db.user", "db.password", "db.host", "db.port", "db.name",
+		"db.user", "db.password", "db.host", "db.port", "db.name", "db.sslmode",
 
 		"jwt.secret", "jwt.exp",
 
@@ -115,6 +116,7 @@ func NewConfig() *Config {
 	}
 
 	config.SetDefault("storage.mode", "local")
+	config.SetDefault("db.sslmode", "require")
 
 	config.SetConfigName("config")
 	config.SetConfigType("json")
@@ -178,6 +180,9 @@ func validateConfig(cfg *Config) error {
 	}
 	if cfg.DB.Name == "" {
 		missingFields = append(missingFields, "db.name")
+	}
+	if cfg.DB.SslMode == "" {
+		missingFields = append(missingFields, "db.sslmode")
 	}
 
 	if cfg.JWT.Secret == "" {

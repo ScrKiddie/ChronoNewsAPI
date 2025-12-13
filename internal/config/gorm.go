@@ -19,8 +19,9 @@ func NewDatabase(config *Config) *gorm.DB {
 	host := config.DB.Host
 	port := config.DB.Port
 	database := config.DB.Name
+	sslmode := config.DB.SslMode
 
-	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable&lock_timeout=5000", username, password, host, port, database)
+	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=%s&lock_timeout=5000", username, password, host, port, database, sslmode)
 
 	logger := slogGorm.New(
 		slogGorm.WithRecordNotFoundError(),
