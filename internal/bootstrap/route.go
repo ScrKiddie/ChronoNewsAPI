@@ -5,6 +5,7 @@ import (
 	"chrononewsapi/internal/handler/controller"
 	"chrononewsapi/internal/handler/middleware"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -25,6 +26,15 @@ type Route struct {
 }
 
 func (r *Route) Setup() {
+
+	r.App.Get("/kaithheathcheck", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte("OK")); err != nil {
+			slog.Warn("Healthcheck write failed", "error", err)
+		}
+	})
+
 	r.App.Route("/api", func(c chi.Router) {
 		c.Group(func(guest chi.Router) {
 			guest.Post("/user/login", r.UserController.Login)
