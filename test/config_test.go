@@ -46,7 +46,7 @@ func loadTestConfig() *TestConfig {
 		"test.jwt.secret", "test.jwt.exp",
 		"test.web.port", "test.web.cors_origins",
 		"test.captcha.secret.pass", "test.captcha.secret.fail", "test.captcha.secret.usage",
-		"test.db.user", "test.db.password", "test.db.host", "test.db.port", "test.db.name",
+		"test.db.user", "test.db.password", "test.db.host", "test.db.port", "test.db.name", "test.db.migration", "test.db.sslmode",
 		"test.smtp.host", "test.smtp.port", "test.smtp.username", "test.smtp.password",
 		"test.smtp.from.name", "test.smtp.from.email",
 	}

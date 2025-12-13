@@ -50,6 +50,8 @@ jobs:
           TEST_DB_USER: testuser
           TEST_DB_PASSWORD: testpassword
           TEST_DB_NAME: testdb
+          TEST_DB_MIGRATION: "true"
+          TEST_DB_SSLMODE: "disable"
           TEST_SMTP_HOST: localhost
           TEST_SMTP_PORT: 1025
           TEST_SMTP_USERNAME: ""

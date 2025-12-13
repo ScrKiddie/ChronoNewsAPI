@@ -17,7 +17,8 @@
     "host": "YOUR_DB_HOST",
     "port": 5432,
     "name": "YOUR_DB_NAME",
-    "sslmode": "require"
+    "sslmode": "require",
+    "migration": false
   },
   "jwt": {
     "secret": "YOUR_JWT_SECRET_KEY",
@@ -74,7 +75,8 @@
       "host": "YOUR_TEST_DB_HOST",
       "port": 5432,
       "name": "YOUR_TEST_DB_NAME",
-      "sslmode": "disable"
+      "sslmode": "disable",
+      "migration": false
     },
     "smtp": {
       "host": "localhost",

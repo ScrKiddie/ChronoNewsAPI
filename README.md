@@ -62,6 +62,7 @@ The application requires specific environment variables to run. Below is the lis
 | **DB\_PORT** | `int` | Database port | `5432` |
 | **DB\_NAME** | `string` | Database name | `mydatabase` |
 | **DB\_SSLMODE** | `string` | SSL mode for database connection (`disable`, `require`, etc.) | `require` |
+| **DB\_MIGRATION** | `boolean` | If `true`, runs database migrations on startup. | `false` |
 | **RESET\_EXP** | `integer` | Expiry time for reset code in hours | `2` |
 | **SMTP\_HOST** | `string` | SMTP server host | `smtp.example.com` |
 | **SMTP\_PORT** | `integer` | SMTP server port | `587` |

@@ -30,12 +30,13 @@ type WebConfig struct {
 }
 
 type DBConfig struct {
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	Name     string `mapstructure:"name"`
-	SslMode  string `mapstructure:"sslmode"`
+	User      string `mapstructure:"user"`
+	Password  string `mapstructure:"password"`
+	Host      string `mapstructure:"host"`
+	Port      int    `mapstructure:"port"`
+	Name      string `mapstructure:"name"`
+	SslMode   string `mapstructure:"sslmode"`
+	Migration bool   `mapstructure:"migration"`
 }
 
 type JWTConfig struct {
@@ -93,7 +94,7 @@ func NewConfig() *Config {
 		"web.base_url", "web.port", "web.cors_origins", "web.client_url",
 		"web.client_paths.post", "web.client_paths.category", "web.client_paths.reset", "web.client_paths.forgot",
 
-		"db.user", "db.password", "db.host", "db.port", "db.name", "db.sslmode",
+		"db.user", "db.password", "db.host", "db.port", "db.name", "db.sslmode", "db.migration",
 
 		"jwt.secret", "jwt.exp",
 
@@ -117,6 +118,7 @@ func NewConfig() *Config {
 
 	config.SetDefault("storage.mode", "local")
 	config.SetDefault("db.sslmode", "require")
+	config.SetDefault("db.migration", false)
 
 	config.SetConfigName("config")
 	config.SetConfigType("json")
