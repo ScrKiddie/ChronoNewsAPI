@@ -2,7 +2,14 @@
   "web": {
     "base_url": "YOUR_APP_BASE_URL",
     "port": "YOUR_APP_PORT",
-    "cors_origins": "*,https://example.com,https://anotherdomain.com"
+    "cors_origins": "*,https://example.com,https://anotherdomain.com",
+    "client_url": "YOUR_FRONTEND_APP_URL",
+    "client_paths": {
+      "post": "/post",
+      "category": "/berita",
+      "reset": "/reset",
+      "forgot": "/reset/request"
+    }
   },
   "db": {
     "user": "YOUR_DB_USER",
@@ -32,10 +39,7 @@
     }
   },
   "reset": {
-    "exp": 2,
-    "url": "YOUR_FRONTEND_RESET_PASSWORD_URL",
-    "query": "code",
-    "request_url": "YOUR_FRONTEND_FORGOT_PASSWORD_URL"
+    "exp": 2
   },
   "smtp": {
     "host": "YOUR_SMTP_HOST",
@@ -69,12 +73,6 @@
       "host": "YOUR_TEST_DB_HOST",
       "port": 5432,
       "name": "YOUR_TEST_DB_NAME"
-    },
-    "reset": {
-      "url": "YOUR_TEST_RESET_URL",
-      "query": "code",
-      "request_url": "YOUR_TEST_FORGOT_URL",
-      "exp": 2
     },
     "smtp": {
       "host": "localhost",

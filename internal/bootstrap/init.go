@@ -34,6 +34,7 @@ func Init(app *chi.Mux, db *gorm.DB, config *config.Config, validator *validator
 	postService := service.NewPostService(db, postRepository, userRepository, fileRepository, categoryRepository, storageAdapter, validator, config)
 	resetService := service.NewResetService(db, resetRepository, userRepository, emailAdapter, captchaAdapter, validator, config)
 	fileService := service.NewFileService(db, fileRepository, storageAdapter, config, validator)
+	sitemapService := service.NewSitemapService(postRepository, categoryRepository, config)
 
 	// Controller
 	userController := controller.NewUserController(userService)
@@ -41,6 +42,7 @@ func Init(app *chi.Mux, db *gorm.DB, config *config.Config, validator *validator
 	postController := controller.NewPostController(postService)
 	resetController := controller.NewResetController(resetService)
 	fileController := controller.NewFileController(fileService)
+	sitemapController := controller.NewSitemapController(sitemapService, db)
 
 	// Middleware
 	userMiddleware := middleware.NewUserMiddleware(userService)
@@ -53,6 +55,7 @@ func Init(app *chi.Mux, db *gorm.DB, config *config.Config, validator *validator
 		PostController:     postController,
 		ResetController:    resetController,
 		FileController:     fileController,
+		SitemapController:  sitemapController,
 		Config:             config,
 	}
 	router.Setup()

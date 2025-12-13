@@ -9,6 +9,7 @@ import (
 	"chrononewsapi/internal/utility"
 	"context"
 	"embed"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"time"
@@ -100,12 +101,13 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 		}
 	}
 
-	resetURL := s.Config.Reset.URL + "?" + s.Config.Reset.Query + "=" + code
+	resetURL := fmt.Sprintf("%s%s?code=%s", s.Config.Web.ClientURL, s.Config.Web.ClientPaths.Reset, code)
+	forgotURL := fmt.Sprintf("%s%s", s.Config.Web.ClientURL, s.Config.Web.ClientPaths.Forgot)
 
 	emailBody := &model.EmailBodyData{
 		Code:            code,
 		ResetURL:        template.URL(resetURL),
-		ResetRequestURL: template.URL(s.Config.Reset.RequestURL),
+		ResetRequestURL: template.URL(forgotURL),
 		Year:            time.Now().Year(),
 		Expired:         s.Config.Reset.Exp,
 	}

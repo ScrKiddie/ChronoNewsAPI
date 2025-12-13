@@ -41,14 +41,18 @@ For the full API documentation, please refer to the documentation:
 
 ## Environment Variables
 
-The application requires specific environment variables to run. Below is the list of available configurations, including the newly added S3 settings.
-
+The application requires specific environment variables to run. Below is the list of available configurations.
 
 | **Key** | **Type** | **Description** | **Example** |
 |---|---|---|---|
-| **WEB\_BASE\_URL** | `string` |  Public base URL of the API. Used for constructing absolute links. | `https://api.mydomain.com` |
+| **WEB\_BASE\_URL** | `string` | Public base URL of the API. Used for constructing absolute links. | `https://api.mydomain.com` |
 | **WEB\_PORT** | `string` | Port on which the web service will run | `8080` |
 | **WEB\_CORS\_ORIGINS** | `string` | List of allowed origins for Cross-Origin Resource Sharing (CORS) | `*,http://mydomain.com` |
+| **WEB\_CLIENT\_URL** | `string` | Base URL of the frontend client application. | `http://localhost:3000` |
+| **WEB\_CLIENT\_PATHS\_POST** | `string` | Client path for single post pages. | `/post` |
+| **WEB\_CLIENT\_PATHS\_CATEGORY** | `string` | Client path for category pages. | `/category` |
+| **WEB\_CLIENT\_PATHS\_RESET** | `string` | Client path for the password reset form. | `/reset-password` |
+| **WEB\_CLIENT\_PATHS\_FORGOT** | `string` | Client path for the forgot password page. | `/forgot-password` |
 | **JWT\_SECRET** | `string` | Secret key for JWT authentication | `mysecretkey12345` |
 | **JWT\_EXP** | `integer` | Expiry time for the JWT token in hours | `24` |
 | **CAPTCHA\_SECRET** | `string` | Secret key for Cloudflare Turnstile | `0x4AAAAAA...` |
@@ -57,9 +61,6 @@ The application requires specific environment variables to run. Below is the lis
 | **DB\_HOST** | `string` | Database host | `localhost` |
 | **DB\_PORT** | `int` | Database port | `5432` |
 | **DB\_NAME** | `string` | Database name | `mydatabase` |
-| **RESET\_URL** | `string` | URL for password reset (Frontend) | `http://mydomain.com/reset` |
-| **RESET\_QUERY** | `string` | Query parameter for password reset | `code` |
-| **RESET\_REQUEST\_URL** | `string` | URL for password reset request (Frontend) | `http://mydomain.com/forgot` |
 | **RESET\_EXP** | `integer` | Expiry time for reset code in hours | `2` |
 | **SMTP\_HOST** | `string` | SMTP server host | `smtp.example.com` |
 | **SMTP\_PORT** | `integer` | SMTP server port | `587` |
@@ -77,38 +78,26 @@ The application requires specific environment variables to run. Below is the lis
 | **STORAGE\_S3\_SECRET\_KEY** | `string` | S3 Secret Access Key | `secret_key` |
 | **STORAGE\_S3\_ENDPOINT** | `string` | S3 Endpoint URL (Required for Cloudflare R2 / MinIO) | `https://<id>.r2.cloudflarestorage.com` |
 
-### Variable Prefix & Structural Differences
+### Configuration for Testing
 
-The application distinguishes between standard and test configurations based on the environment variable keys. Crucially, **the Test configuration is a minimized subset** of the main configuration.
-#### 1. Standard Configuration (No Prefix)
-Variables *without* a prefix (e.g., `WEB_BASE_URL`, `STORAGE_MODE`) are loaded into the main application configuration.
+The application uses a separate, minimal configuration for running tests. Most test configurations are loaded from environment variables prefixed with `TEST_`, but several key sections are **hardcoded** for simplicity and consistency.
 
-#### 2. Test Configuration (`TEST_` Prefix)
-Variables *starting with* `TEST_` are loaded into a separate, smaller `TestConfig` structure. Because the struct is different, **many keys available in production do not exist in the test configuration.**
+**Hardcoded Test Configurations (No Env Vars Needed):**
 
-| Config Section | Standard Config (Full) | Test Config (Subset) | **Implication for Env Vars** |
-| :--- | :--- | :--- | :--- |
-| **Web** | `base_url`, `port`, `cors_origins` | `port`, `cors_origins` | `TEST_WEB_BASE_URL` **does not exist** and is ignored. |
-| **Storage** | Full Support (`local` + `s3`) | **Removed Completely** | `TEST_STORAGE_*` keys **do not exist**. Storage is hardcoded to temporary local dirs. |
-| **Captcha** | Single String (`secret`) | Object (`pass`, `fail`, `usage`) | Requires 3 separate keys for testing (see below). |
+*   **`storage`**: This entire section is **removed** from the test configuration. Tests automatically use a temporary local directory for file storage, which is created and deleted on the fly.
+*   **`reset`**: The reset token expiration (`reset.exp`) is hardcoded to `2` hours.
+*   **`web.client_url` & `web.client_paths`**: The client-facing URLs are hardcoded to mock values (e.g., `http://test-client.com/post`).
 
-### Storage Behavior in Testing
+**Environment Variables for Testing:**
 
-Since the `storage` configuration block is structurally absent from the Test Config:
-
-* **Production/Dev:** Fully configurable via `STORAGE_MODE` (Local or S3).
-* **Test Environment:** **No configuration possible.** The test suite automatically creates and tears down a temporary local directory. Any attempt to set S3 credentials for testing via Env Vars will be ignored because there are no fields to hold them.
-
-### Captcha in Testing
-
-* **Standard:** Uses `CAPTCHA_SECRET`.
-* **Test:** Uses a structured object to mock different Turnstile outcomes. You must provide these specific keys:
-  ```bash
-  TEST_CAPTCHA_SECRET_PASS="1x0000000000000000000000000000000AA"
-  TEST_CAPTCHA_SECRET_FAIL="2x0000000000000000000000000000000AA"
-  TEST_CAPTCHA_SECRET_USAGE="3x0000000000000000000000000000000AA"
-  ```
+*   **`captcha`**: The captcha configuration for tests is different. Instead of a single secret, you must provide three specific keys to mock different outcomes:
+    ```bash
+    TEST_CAPTCHA_SECRET_PASS="1x0000000000000000000000000000000AA"
+    TEST_CAPTCHA_SECRET_FAIL="2x0000000000000000000000000000000AA"
+    TEST_CAPTCHA_SECRET_USAGE="3x0000000000000000000000000000000AA"
+    ```
+*   **`jwt`**, **`db`**, **`smtp`**, and parts of **`web`** still need to be provided with the `TEST_` prefix (e.g., `TEST_JWT_SECRET`, `TEST_DB_HOST`).
 
 ### JSON Configuration (`config.json`)
 
-If using `config.json` instead of environment variables, please note the schema difference. The `test` object is **not** a copy of the root object; it lacks `storage` and `web.base_url`. Refer to `config.example.json` for the exact structure.
+If you use a `config.json` file, be aware that the structure for the `test` object is different from the main configuration. It omits the `storage` and `reset` sections, and does not require client URL paths. Please refer to `config.example.json` for the exact structure.

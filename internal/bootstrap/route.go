@@ -20,6 +20,7 @@ type Route struct {
 	PostController     *controller.PostController
 	ResetController    *controller.ResetController
 	FileController     *controller.FileController
+	SitemapController  *controller.SitemapController
 	Config             *config.Config
 }
 
@@ -58,6 +59,10 @@ func (r *Route) Setup() {
 			auth.Post("/image", r.FileController.UploadImage)
 		})
 	})
+
+	r.App.Get("/sitemap.xml", r.SitemapController.GetSitemapIndex)
+	r.App.Get("/sitemap/posts-{page}.xml", r.SitemapController.GetPostsSitemap)
+	r.App.Get("/sitemap/categories.xml", r.SitemapController.GetCategoriesSitemap)
 
 	if r.Config.Storage.Mode == "local" {
 

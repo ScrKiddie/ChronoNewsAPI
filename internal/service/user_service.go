@@ -9,6 +9,7 @@ import (
 	"chrononewsapi/internal/utility"
 	"context"
 	"embed"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"math"
@@ -38,12 +39,12 @@ func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, post
 		DB:              db,
 		UserRepository:  userRepository,
 		PostRepository:  postRepository,
+		ResetRepository: resetRepository,
 		StorageAdapter:  storageAdapter,
 		CaptchaAdapter:  captchaAdapter,
 		EmailAdapter:    emailAdapter,
 		Validator:       validator,
 		Config:          config,
-		ResetRepository: resetRepository,
 	}
 }
 
@@ -373,12 +374,13 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 		return nil, utility.ErrInternalServer
 	}
 
-	resetURL := s.Config.Reset.URL + "?" + s.Config.Reset.Query + "=" + code
+	resetURL := fmt.Sprintf("%s%s?code=%s", s.Config.Web.ClientURL, s.Config.Web.ClientPaths.Reset, code)
+	forgotURL := fmt.Sprintf("%s%s", s.Config.Web.ClientURL, s.Config.Web.ClientPaths.Forgot)
 
 	emailBody := &model.EmailBodyData{
 		Code:            code,
 		ResetURL:        template.URL(resetURL),
-		ResetRequestURL: template.URL(s.Config.Reset.RequestURL),
+		ResetRequestURL: template.URL(forgotURL),
 		Year:            time.Now().Year(),
 		Expired:         s.Config.Reset.Exp,
 	}

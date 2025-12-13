@@ -34,8 +34,15 @@ func convertTestConfigToAppConfig(testCfg *TestConfig) *config.Config {
 		Web: config.WebConfig{
 			Port:        testCfg.Web.Port,
 			CorsOrigins: testCfg.Web.CorsOrigins,
+			BaseURL:     fmt.Sprintf("http://localhost:%s", testCfg.Web.Port),
 
-			BaseURL: fmt.Sprintf("http://localhost:%s", testCfg.Web.Port),
+			ClientURL: "http://test-client.com",
+			ClientPaths: config.ClientPathConfig{
+				Post:     "/post",
+				Category: "/category",
+				Reset:    "/reset",
+				Forgot:   "/forgot",
+			},
 		},
 		DB:      testCfg.DB,
 		JWT:     testCfg.JWT,
@@ -46,8 +53,10 @@ func convertTestConfigToAppConfig(testCfg *TestConfig) *config.Config {
 			CdnURL: "",
 		},
 
-		Reset: testCfg.Reset,
-		SMTP:  testCfg.SMTP,
+		Reset: config.ResetConfig{
+			Exp: 2,
+		},
+		SMTP: testCfg.SMTP,
 	}
 }
 

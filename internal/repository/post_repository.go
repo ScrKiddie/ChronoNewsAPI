@@ -130,3 +130,19 @@ func (r *PostRepository) ExistsByCategoryID(db *gorm.DB, categoryID int32) (bool
 		Find(&exists).Error
 	return exists, err
 }
+
+func (r *PostRepository) Count(db *gorm.DB) (int64, error) {
+	var count int64
+	err := db.Model(&entity.Post{}).Count(&count).Error
+	return count, err
+}
+
+func (r *PostRepository) FindAllPaged(db *gorm.DB, limit, offset int) ([]entity.Post, error) {
+	var posts []entity.Post
+	err := db.Select("id", "title", "updated_at").
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&posts).Error
+	return posts, err
+}

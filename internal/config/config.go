@@ -14,10 +14,19 @@ type FromConfig struct {
 	Email string `mapstructure:"email"`
 }
 
+type ClientPathConfig struct {
+	Post     string `mapstructure:"post"`
+	Category string `mapstructure:"category"`
+	Reset    string `mapstructure:"reset"`
+	Forgot   string `mapstructure:"forgot"`
+}
+
 type WebConfig struct {
-	BaseURL     string `mapstructure:"base_url"`
-	Port        string `mapstructure:"port"`
-	CorsOrigins string `mapstructure:"cors_origins"`
+	BaseURL     string           `mapstructure:"base_url"`
+	Port        string           `mapstructure:"port"`
+	CorsOrigins string           `mapstructure:"cors_origins"`
+	ClientURL   string           `mapstructure:"client_url"`
+	ClientPaths ClientPathConfig `mapstructure:"client_paths"`
 }
 
 type DBConfig struct {
@@ -54,10 +63,7 @@ type StorageConfig struct {
 }
 
 type ResetConfig struct {
-	Exp        int    `mapstructure:"exp"`
-	URL        string `mapstructure:"url"`
-	Query      string `mapstructure:"query"`
-	RequestURL string `mapstructure:"request_url"`
+	Exp int `mapstructure:"exp"`
 }
 
 type SMTPConfig struct {
@@ -83,9 +89,8 @@ func NewConfig() *Config {
 	config.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	envKeys := []string{
-
-		"web.base_url",
-		"web.port", "web.cors_origins",
+		"web.base_url", "web.port", "web.cors_origins", "web.client_url",
+		"web.client_paths.post", "web.client_paths.category", "web.client_paths.reset", "web.client_paths.forgot",
 
 		"db.user", "db.password", "db.host", "db.port", "db.name",
 
@@ -93,12 +98,10 @@ func NewConfig() *Config {
 
 		"captcha.secret",
 
-		"storage.mode",
-		"storage.cdn_url",
-		"storage.post", "storage.profile",
+		"storage.mode", "storage.cdn_url", "storage.post", "storage.profile",
 		"storage.s3.bucket", "storage.s3.region", "storage.s3.access_key", "storage.s3.secret_key", "storage.s3.endpoint",
 
-		"reset.exp", "reset.url", "reset.query", "reset.request_url",
+		"reset.exp",
 
 		"smtp.host", "smtp.port", "smtp.username", "smtp.password",
 		"smtp.from.name", "smtp.from.email",
@@ -147,6 +150,21 @@ func validateConfig(cfg *Config) error {
 	}
 	if cfg.Web.Port == "" {
 		missingFields = append(missingFields, "web.port")
+	}
+	if cfg.Web.ClientURL == "" {
+		missingFields = append(missingFields, "web.client_url")
+	}
+	if cfg.Web.ClientPaths.Post == "" {
+		missingFields = append(missingFields, "web.client_paths.post")
+	}
+	if cfg.Web.ClientPaths.Category == "" {
+		missingFields = append(missingFields, "web.client_paths.category")
+	}
+	if cfg.Web.ClientPaths.Reset == "" {
+		missingFields = append(missingFields, "web.client_paths.reset")
+	}
+	if cfg.Web.ClientPaths.Forgot == "" {
+		missingFields = append(missingFields, "web.client_paths.forgot")
 	}
 
 	if cfg.DB.Host == "" {
@@ -205,15 +223,6 @@ func validateConfig(cfg *Config) error {
 		missingFields = append(missingFields, "storage.mode (must be 'local' or 's3')")
 	}
 
-	if cfg.Reset.URL == "" {
-		missingFields = append(missingFields, "reset.url")
-	}
-	if cfg.Reset.Query == "" {
-		missingFields = append(missingFields, "reset.query")
-	}
-	if cfg.Reset.RequestURL == "" {
-		missingFields = append(missingFields, "reset.request_url")
-	}
 	if cfg.Reset.Exp <= 0 {
 		missingFields = append(missingFields, "reset.exp")
 	}

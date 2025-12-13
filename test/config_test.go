@@ -27,12 +27,11 @@ type TestCaptchaConfig struct {
 }
 
 type TestConfig struct {
-	JWT     config.JWTConfig   `mapstructure:"jwt"`
-	Web     TestWebConfig      `mapstructure:"web"`
-	Captcha TestCaptchaConfig  `mapstructure:"captcha"`
-	DB      config.DBConfig    `mapstructure:"db"`
-	Reset   config.ResetConfig `mapstructure:"reset"`
-	SMTP    config.SMTPConfig  `mapstructure:"smtp"`
+	JWT     config.JWTConfig  `mapstructure:"jwt"`
+	Web     TestWebConfig     `mapstructure:"web"`
+	Captcha TestCaptchaConfig `mapstructure:"captcha"`
+	DB      config.DBConfig   `mapstructure:"db"`
+	SMTP    config.SMTPConfig `mapstructure:"smtp"`
 }
 
 type TestConfigWrapper struct {
@@ -48,7 +47,6 @@ func loadTestConfig() *TestConfig {
 		"test.web.port", "test.web.cors_origins",
 		"test.captcha.secret.pass", "test.captcha.secret.fail", "test.captcha.secret.usage",
 		"test.db.user", "test.db.password", "test.db.host", "test.db.port", "test.db.name",
-		"test.reset.url", "test.reset.query", "test.reset.request_url", "test.reset.exp",
 		"test.smtp.host", "test.smtp.port", "test.smtp.username", "test.smtp.password",
 		"test.smtp.from.name", "test.smtp.from.email",
 	}
@@ -116,19 +114,6 @@ func validateTestConfig(cfg *TestConfig) error {
 
 	if cfg.Captcha.Secret.Pass == "" {
 		missingFields = append(missingFields, "test.captcha.secret.pass")
-	}
-
-	if cfg.Reset.URL == "" {
-		missingFields = append(missingFields, "test.reset.url")
-	}
-	if cfg.Reset.Query == "" {
-		missingFields = append(missingFields, "test.reset.query")
-	}
-	if cfg.Reset.RequestURL == "" {
-		missingFields = append(missingFields, "test.reset.request_url")
-	}
-	if cfg.Reset.Exp <= 0 {
-		missingFields = append(missingFields, "test.reset.exp")
 	}
 
 	if cfg.SMTP.Host == "" {
