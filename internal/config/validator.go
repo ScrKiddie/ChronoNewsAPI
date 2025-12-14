@@ -35,6 +35,10 @@ func NewValidator() *validator.Validate {
 		slog.Error("Failed to register 'uniquemembers' validator", "err", err)
 		os.Exit(1)
 	}
+	if err := v.RegisterValidation("e164", E164Format); err != nil {
+		slog.Error("Failed to register 'e164' validator", "err", err)
+		os.Exit(1)
+	}
 	return v
 }
 
@@ -165,4 +169,10 @@ func UniqueMembers(fl validator.FieldLevel) bool {
 	}
 
 	return true
+}
+
+func E164Format(fl validator.FieldLevel) bool {
+	phoneNumber := fl.Field().String()
+	regex := regexp.MustCompile(`^\+[1-9]\d{6,14}$`)
+	return regex.MatchString(phoneNumber)
 }

@@ -135,7 +135,7 @@ func TestUserEndpoints(t *testing.T) {
 		w := multipart.NewWriter(&b)
 		assert.NoError(t, w.WriteField("name", "Test User"))
 		assert.NoError(t, w.WriteField("email", "testuser@example.com"))
-		assert.NoError(t, w.WriteField("phoneNumber", "1234567890"))
+		assert.NoError(t, w.WriteField("phoneNumber", "+621234567890"))
 		assert.NoError(t, w.WriteField("role", "journalist"))
 		assert.NoError(t, w.Close())
 
@@ -167,7 +167,7 @@ func TestUserEndpoints(t *testing.T) {
 		w := multipart.NewWriter(&b)
 		assert.NoError(t, w.WriteField("name", "Another User"))
 		assert.NoError(t, w.WriteField("email", "testuser@example.com"))
-		assert.NoError(t, w.WriteField("phoneNumber", "1111111111"))
+		assert.NoError(t, w.WriteField("phoneNumber", "+621111111111"))
 		assert.NoError(t, w.WriteField("role", "journalist"))
 		assert.NoError(t, w.Close())
 
@@ -190,7 +190,7 @@ func TestUserEndpoints(t *testing.T) {
 		w := multipart.NewWriter(&b)
 		assert.NoError(t, w.WriteField("name", "Another User 2"))
 		assert.NoError(t, w.WriteField("email", "anotheruser@example.com"))
-		assert.NoError(t, w.WriteField("phoneNumber", "1234567890"))
+		assert.NoError(t, w.WriteField("phoneNumber", "+621234567890"))
 		assert.NoError(t, w.WriteField("role", "journalist"))
 		assert.NoError(t, w.Close())
 
@@ -213,7 +213,7 @@ func TestUserEndpoints(t *testing.T) {
 		w := multipart.NewWriter(&b)
 		assert.NoError(t, w.WriteField("name", ""))
 		assert.NoError(t, w.WriteField("email", "bad-request-user"))
-		assert.NoError(t, w.WriteField("phoneNumber", "9876543210"))
+		assert.NoError(t, w.WriteField("phoneNumber", "+629876543210"))
 		assert.NoError(t, w.WriteField("role", "guest"))
 		assert.NoError(t, w.Close())
 
@@ -236,7 +236,7 @@ func TestUserEndpoints(t *testing.T) {
 		w := multipart.NewWriter(&b)
 		assert.NoError(t, w.WriteField("name", "Forbidden User"))
 		assert.NoError(t, w.WriteField("email", "forbidden@example.com"))
-		assert.NoError(t, w.WriteField("phoneNumber", "5555555555"))
+		assert.NoError(t, w.WriteField("phoneNumber", "+625555555555"))
 		assert.NoError(t, w.WriteField("role", "journalist"))
 		assert.NoError(t, w.Close())
 
@@ -357,7 +357,7 @@ func TestUserEndpoints(t *testing.T) {
 		w := multipart.NewWriter(&b)
 		assert.NoError(t, w.WriteField("name", "Updated Test User"))
 		assert.NoError(t, w.WriteField("email", "updateduser@example.com"))
-		assert.NoError(t, w.WriteField("phoneNumber", "0987654321"))
+		assert.NoError(t, w.WriteField("phoneNumber", "+6287654321"))
 		assert.NoError(t, w.WriteField("role", "admin"))
 		assert.NoError(t, w.Close())
 
@@ -393,7 +393,7 @@ func TestUserEndpoints(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NoError(t, wCreate.WriteField("name", "User Pic Delete"))
 		assert.NoError(t, wCreate.WriteField("email", "user.pic.delete@example.com"))
-		assert.NoError(t, wCreate.WriteField("phoneNumber", "1010101010"))
+		assert.NoError(t, wCreate.WriteField("phoneNumber", "+621010101010"))
 		assert.NoError(t, wCreate.WriteField("role", "journalist"))
 		assert.NoError(t, wCreate.Close())
 
@@ -424,7 +424,7 @@ func TestUserEndpoints(t *testing.T) {
 		wUpdate := multipart.NewWriter(&bUpdate)
 		assert.NoError(t, wUpdate.WriteField("name", "User Pic Delete"))
 		assert.NoError(t, wUpdate.WriteField("email", "user.pic.delete@example.com"))
-		assert.NoError(t, wUpdate.WriteField("phoneNumber", "1010101010"))
+		assert.NoError(t, wUpdate.WriteField("phoneNumber", "+621010101010"))
 		assert.NoError(t, wUpdate.WriteField("role", "journalist"))
 		assert.NoError(t, wUpdate.WriteField("deleteProfilePicture", "true"))
 		assert.NoError(t, wUpdate.Close())
@@ -480,7 +480,7 @@ func TestUserEndpoints(t *testing.T) {
 		wCreate := multipart.NewWriter(&bCreate)
 		assert.NoError(t, wCreate.WriteField("name", "Temp User"))
 		assert.NoError(t, wCreate.WriteField("email", "temp.user@example.com"))
-		assert.NoError(t, wCreate.WriteField("phoneNumber", "555444333"))
+		assert.NoError(t, wCreate.WriteField("phoneNumber", "+62555444333"))
 		assert.NoError(t, wCreate.WriteField("role", "journalist"))
 		assert.NoError(t, wCreate.Close())
 		reqCreate, err := http.NewRequest("POST", ts.URL+"/api/user", &bCreate)
@@ -499,7 +499,7 @@ func TestUserEndpoints(t *testing.T) {
 		wUpdate := multipart.NewWriter(&bUpdate)
 		assert.NoError(t, wUpdate.WriteField("name", "Updated Test User"))
 		assert.NoError(t, wUpdate.WriteField("email", "temp.user@example.com"))
-		assert.NoError(t, wUpdate.WriteField("phoneNumber", "0987654321"))
+		assert.NoError(t, wUpdate.WriteField("phoneNumber", "+6287654321"))
 		assert.NoError(t, wUpdate.WriteField("role", "admin"))
 		assert.NoError(t, wUpdate.Close())
 
@@ -521,7 +521,7 @@ func TestUserEndpoints(t *testing.T) {
 		wCreate := multipart.NewWriter(&bCreate)
 		assert.NoError(t, wCreate.WriteField("name", "Temp User Phone"))
 		assert.NoError(t, wCreate.WriteField("email", "temp.phone@example.com"))
-		assert.NoError(t, wCreate.WriteField("phoneNumber", "999888777"))
+		assert.NoError(t, wCreate.WriteField("phoneNumber", "+62999888777"))
 		assert.NoError(t, wCreate.WriteField("role", "journalist"))
 		assert.NoError(t, wCreate.Close())
 		reqCreate, err := http.NewRequest("POST", ts.URL+"/api/user", &bCreate)
@@ -540,7 +540,7 @@ func TestUserEndpoints(t *testing.T) {
 		wUpdate := multipart.NewWriter(&bUpdate)
 		assert.NoError(t, wUpdate.WriteField("name", "Updated Test User"))
 		assert.NoError(t, wUpdate.WriteField("email", "updateduser@example.com"))
-		assert.NoError(t, wUpdate.WriteField("phoneNumber", "999888777"))
+		assert.NoError(t, wUpdate.WriteField("phoneNumber", "+62999888777"))
 		assert.NoError(t, wUpdate.WriteField("role", "admin"))
 		assert.NoError(t, wUpdate.Close())
 
@@ -562,7 +562,7 @@ func TestUserEndpoints(t *testing.T) {
 		w := multipart.NewWriter(&b)
 		assert.NoError(t, w.WriteField("name", "Forbidden Update"))
 		assert.NoError(t, w.WriteField("email", "forbidden.update@example.com"))
-		assert.NoError(t, w.WriteField("phoneNumber", "111222333"))
+		assert.NoError(t, w.WriteField("phoneNumber", "+62111222333"))
 		assert.NoError(t, w.WriteField("role", "admin"))
 		assert.NoError(t, w.Close())
 
@@ -585,7 +585,7 @@ func TestUserEndpoints(t *testing.T) {
 		w := multipart.NewWriter(&b)
 		assert.NoError(t, w.WriteField("name", "Non Existent User"))
 		assert.NoError(t, w.WriteField("email", "nonexistent@example.com"))
-		assert.NoError(t, w.WriteField("phoneNumber", "1231231231"))
+		assert.NoError(t, w.WriteField("phoneNumber", "+621231231231"))
 		assert.NoError(t, w.WriteField("role", "journalist"))
 		assert.NoError(t, w.Close())
 
@@ -628,7 +628,7 @@ func TestUserEndpoints(t *testing.T) {
 		w := multipart.NewWriter(&b)
 		assert.NoError(t, w.WriteField("name", "Current User Updated"))
 		assert.NoError(t, w.WriteField("email", "currentuser.updated@example.com"))
-		assert.NoError(t, w.WriteField("phoneNumber", "1122334455"))
+		assert.NoError(t, w.WriteField("phoneNumber", "+621122334455"))
 		assert.NoError(t, w.Close())
 
 		req, err := http.NewRequest("PATCH", ts.URL+"/api/user/current/profile", &b)
@@ -651,7 +651,7 @@ func TestUserEndpoints(t *testing.T) {
 		wUpdate := multipart.NewWriter(&bUpdate)
 		assert.NoError(t, wUpdate.WriteField("name", "Current User Updated"))
 		assert.NoError(t, wUpdate.WriteField("email", "currentuser.updated@example.com"))
-		assert.NoError(t, wUpdate.WriteField("phoneNumber", "1122334455"))
+		assert.NoError(t, wUpdate.WriteField("phoneNumber", "+621122334455"))
 		assert.NoError(t, wUpdate.Close())
 
 		updateReq, err := http.NewRequest("PATCH", ts.URL+"/api/user/current/profile", &bUpdate)
@@ -674,7 +674,7 @@ func TestUserEndpoints(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NoError(t, wUpload1.WriteField("name", "Current User Updated"))
 		assert.NoError(t, wUpload1.WriteField("email", "currentuser.updated@example.com"))
-		assert.NoError(t, wUpload1.WriteField("phoneNumber", "1122334455"))
+		assert.NoError(t, wUpload1.WriteField("phoneNumber", "+621122334455"))
 		assert.NoError(t, wUpload1.Close())
 
 		reqUpload1, err := http.NewRequest("PATCH", ts.URL+"/api/user/current/profile", &bUpload1)
@@ -724,7 +724,7 @@ func TestUserEndpoints(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NoError(t, wUpload.WriteField("name", "User With Picture"))
 		assert.NoError(t, wUpload.WriteField("email", "user.with.pic@example.com"))
-		assert.NoError(t, wUpload.WriteField("phoneNumber", "555666777"))
+		assert.NoError(t, wUpload.WriteField("phoneNumber", "+62555666777"))
 		assert.NoError(t, wUpload.Close())
 
 		reqUpload, err := http.NewRequest("PATCH", ts.URL+"/api/user/current/profile", &bUpload)
@@ -753,7 +753,7 @@ func TestUserEndpoints(t *testing.T) {
 		wDelete := multipart.NewWriter(&bDelete)
 		assert.NoError(t, wDelete.WriteField("name", "User With Picture"))
 		assert.NoError(t, wDelete.WriteField("email", "user.with.pic@example.com"))
-		assert.NoError(t, wDelete.WriteField("phoneNumber", "555666777"))
+		assert.NoError(t, wDelete.WriteField("phoneNumber", "+62555666777"))
 		assert.NoError(t, wDelete.WriteField("deleteProfilePicture", "true"))
 		assert.NoError(t, wDelete.Close())
 

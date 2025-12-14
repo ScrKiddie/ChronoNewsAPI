@@ -13,7 +13,7 @@ type UserResponse struct {
 
 type UserRegister struct {
 	Name        string `validate:"required,min=3,max=255" json:"name"`
-	PhoneNumber string `validate:"required,max=20" json:"phoneNumber"`
+	PhoneNumber string `validate:"required,e164,max=20" json:"phoneNumber"`
 	Email       string `validate:"required,email,max=255" json:"email"`
 	Password    string `validate:"required,passwordformat,min=8,max=255" json:"password"`
 }
@@ -26,7 +26,7 @@ type UserLogin struct {
 
 type UserUpdateProfile struct {
 	Name                 string                `validate:"required,min=3,max=255"`
-	PhoneNumber          string                `validate:"required,max=20"`
+	PhoneNumber          string                `validate:"required,e164,max=20"`
 	Email                string                `validate:"required,email,max=255"`
 	ProfilePicture       *multipart.FileHeader `validate:"omitempty,image=800_800_2"`
 	DeleteProfilePicture bool
@@ -48,17 +48,19 @@ type UserSearch struct {
 }
 
 type UserCreate struct {
-	Name           string                `validate:"required,min=3,max=255"`
-	PhoneNumber    string                `validate:"required,max=20"`
+	Name string `validate:"required,min=3,max=255"`
+
+	PhoneNumber    string                `validate:"required,e164,max=20"`
 	Email          string                `validate:"required,email,max=255"`
 	ProfilePicture *multipart.FileHeader `validate:"omitempty,image=800_800_2"`
 	Role           string                `validate:"required,oneof=admin journalist"`
 }
 
 type UserUpdate struct {
-	ID                   int32                 `validate:"required"`
-	Name                 string                `validate:"required,min=3,max=255"`
-	PhoneNumber          string                `validate:"required,max=20"`
+	ID   int32  `validate:"required"`
+	Name string `validate:"required,min=3,max=255"`
+
+	PhoneNumber          string                `validate:"required,e164,max=20"`
 	Email                string                `validate:"required,email,max=255"`
 	ProfilePicture       *multipart.FileHeader `validate:"omitempty,image=800_800_2"`
 	Password             string                `validate:"omitempty,passwordformat,min=8,max=255"`
