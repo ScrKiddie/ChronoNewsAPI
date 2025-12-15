@@ -11,6 +11,8 @@ type File struct {
 	LastError      *string `gorm:"column:last_error;type:varchar(255)"`
 	UsedByPostID   *int32  `gorm:"column:used_by_post_id;index"`
 	Post           *Post   `gorm:"foreignKey:UsedByPostID"`
+	UsedByUserID   *int32  `gorm:"column:used_by_user_id;index"`
+	User           *User   `gorm:"foreignKey:UsedByUserID"`
 }
 
 func (File) TableName() string {

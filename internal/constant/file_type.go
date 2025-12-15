@@ -1,6 +1,7 @@
 package constant
 
 const (
-	FileTypeThumbnail  = "thumbnail"
+	FileTypeThumbnail = "thumbnail"
 	FileTypeAttachment = "attachment"
+	FileTypeProfile = "profile"
 )

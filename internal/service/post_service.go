@@ -85,6 +85,15 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 		if len(post.Files) > 0 {
 			thumbnail = utility.BuildImageURL(s.Config, s.Config.Storage.Post, post.Files[0].Name)
 		}
+
+		var profilePicture string
+		for _, file := range post.User.Files {
+			if file.Type == constant.FileTypeProfile {
+				profilePicture = utility.BuildImageURL(s.Config, s.Config.Storage.Profile, file.Name)
+				break
+			}
+		}
+
 		response = append(response, model.PostResponseWithPreload{
 			ID:        post.ID,
 			Title:     post.Title,
@@ -96,7 +105,7 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 			User: &model.UserPublicResponse{
 				ID:             post.User.ID,
 				Name:           post.User.Name,
-				ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, post.User.ProfilePicture),
+				ProfilePicture: profilePicture,
 			},
 			Category: &model.CategoryResponse{
 				ID:   post.Category.ID,
@@ -159,6 +168,14 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		}
 	}
 
+	var profilePicture string
+	for _, file := range post.User.Files {
+		if file.Type == constant.FileTypeProfile {
+			profilePicture = utility.BuildImageURL(s.Config, s.Config.Storage.Profile, file.Name)
+			break
+		}
+	}
+
 	response := &model.PostResponseWithPreload{
 		ID:        post.ID,
 		Title:     post.Title,
@@ -169,7 +186,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 		User: &model.UserPublicResponse{
 			ID:             post.User.ID,
 			Name:           post.User.Name,
-			ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, post.User.ProfilePicture),
+			ProfilePicture: profilePicture,
 		},
 		Category: &model.CategoryResponse{
 			ID:   post.Category.ID,

@@ -38,7 +38,7 @@ func (r *UserRepository) FindPasswordByEmail(db *gorm.DB, entity *entity.User, e
 }
 
 func (r *UserRepository) FindByID(db *gorm.DB, entity *entity.User, id int32) error {
-	return db.Where("id = ?", id).First(entity).Error
+	return db.Preload("Files", "type = ?", constant.FileTypeProfile).Where("id = ?", id).First(entity).Error
 }
 
 func (r *UserRepository) IsAdmin(db *gorm.DB, id int32) error {
@@ -46,6 +46,7 @@ func (r *UserRepository) IsAdmin(db *gorm.DB, id int32) error {
 }
 
 func (r *UserRepository) Search(db *gorm.DB, request *model.UserSearch, entities *[]entity.User, currentId int32) (int64, error) {
+	query := db.Preload("Files", "type = ?", constant.FileTypeProfile)
 	var conditions []string
 	var args []interface{}
 
@@ -70,24 +71,28 @@ func (r *UserRepository) Search(db *gorm.DB, request *model.UserSearch, entities
 	}
 
 	if len(conditions) > 0 {
-		db = db.Where(strings.Join(conditions, " OR "), args...)
+		query = query.Where(strings.Join(conditions, " OR "), args...)
 	}
 
 	var total int64
-	err := db.Model(&entity.User{}).Where("id != ?", currentId).Count(&total).Error
+	err := query.Model(&entity.User{}).Where("id != ?", currentId).Count(&total).Error
 	if err != nil {
 		return 0, err
 	}
 
 	if request.Page > 0 && request.Size > 0 {
-		db = db.Limit(int(request.Size)).Offset(int((request.Page - 1) * request.Size))
+		query = query.Limit(int(request.Size)).Offset(int((request.Page - 1) * request.Size))
 	}
 
-	err = db.Debug().Where("id != ?", currentId).Order("name ASC").Find(entities).Error
+	err = query.Where("id != ?", currentId).Order("name ASC").Find(entities).Error
 
 	return total, err
 }
+
+func (r *UserRepository) Update(db *gorm.DB, user *entity.User) error {
+	return db.Model(user).Omit("Files").Save(user).Error
+}
+
 func (r *UserRepository) Updates(db *gorm.DB, user *entity.User) error {
-	return db.Model(user).
-		Updates(user).Error
+	return db.Model(user).Omit("Files").Updates(user).Error
 }

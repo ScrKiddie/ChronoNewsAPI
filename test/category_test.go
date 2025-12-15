@@ -278,8 +278,8 @@ func TestCategoryEndpoints(t *testing.T) {
 	})
 
 	t.Run("Delete Category - In Use", func(t *testing.T) {
-		var user model.UserResponse
-		err := testDB.Model(&entity.User{}).Where("email = ?", "admin-category@test.com").First(&user).Error
+		var user entity.User
+		err := testDB.Where("email = ?", "admin-category@test.com").First(&user).Error
 		assert.NoError(t, err)
 
 		post := entity.Post{

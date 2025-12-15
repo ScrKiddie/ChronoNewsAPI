@@ -52,3 +52,7 @@ func (r *FileRepository) UnlinkUnusedFiles(db *gorm.DB, postID int32, usedFileID
 	}
 	return db.Model(&entity.File{}).Where("used_by_post_id = ? AND id NOT IN ?", postID, usedFileIDs).Update("used_by_post_id", nil).Error
 }
+
+func (r *FileRepository) UnlinkFilesFromUser(db *gorm.DB, userID int32) error {
+	return db.Model(&entity.File{}).Where("used_by_user_id = ?", userID).Update("used_by_user_id", nil).Error
+}

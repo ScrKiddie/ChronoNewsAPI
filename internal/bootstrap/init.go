@@ -29,7 +29,7 @@ func Init(app *chi.Mux, db *gorm.DB, config *config.Config, validator *validator
 	emailAdapter := adapter.NewEmailAdapter()
 
 	// Service
-	userService := service.NewUserService(db, userRepository, postRepository, resetRepository, storageAdapter, captchaAdapter, emailAdapter, validator, config)
+	userService := service.NewUserService(db, userRepository, postRepository, fileRepository, resetRepository, storageAdapter, captchaAdapter, emailAdapter, validator, config)
 	categoryService := service.NewCategoryService(db, categoryRepository, userRepository, postRepository, validator)
 	postService := service.NewPostService(db, postRepository, userRepository, fileRepository, categoryRepository, storageAdapter, validator, config)
 	resetService := service.NewResetService(db, resetRepository, userRepository, emailAdapter, captchaAdapter, validator, config)

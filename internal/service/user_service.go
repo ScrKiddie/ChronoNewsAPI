@@ -3,6 +3,7 @@ package service
 import (
 	"chrononewsapi/internal/adapter"
 	"chrononewsapi/internal/config"
+	"chrononewsapi/internal/constant"
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
 	"chrononewsapi/internal/repository"
@@ -26,6 +27,7 @@ type UserService struct {
 	DB              *gorm.DB
 	UserRepository  *repository.UserRepository
 	PostRepository  *repository.PostRepository
+	FileRepository  *repository.FileRepository
 	ResetRepository *repository.ResetRepository
 	StorageAdapter  *adapter.StorageAdapter
 	CaptchaAdapter  *adapter.CaptchaAdapter
@@ -34,11 +36,12 @@ type UserService struct {
 	Config          *config.Config
 }
 
-func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, postRepository *repository.PostRepository, resetRepository *repository.ResetRepository, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, emailAdapter *adapter.EmailAdapter, validator *validator.Validate, config *config.Config) *UserService {
+func NewUserService(db *gorm.DB, userRepository *repository.UserRepository, postRepository *repository.PostRepository, fileRepository *repository.FileRepository, resetRepository *repository.ResetRepository, storageAdapter *adapter.StorageAdapter, captchaAdapter *adapter.CaptchaAdapter, emailAdapter *adapter.EmailAdapter, validator *validator.Validate, config *config.Config) *UserService {
 	return &UserService{
 		DB:              db,
 		UserRepository:  userRepository,
 		PostRepository:  postRepository,
+		FileRepository:  fileRepository,
 		ResetRepository: resetRepository,
 		StorageAdapter:  storageAdapter,
 		CaptchaAdapter:  captchaAdapter,
@@ -120,10 +123,18 @@ func (s *UserService) Current(ctx context.Context, request *model.Auth) (*model.
 		return nil, utility.ErrInternalServer
 	}
 
+	var profilePicture string
+	for _, file := range user.Files {
+		if file.Type == constant.FileTypeProfile {
+			profilePicture = utility.BuildImageURL(s.Config, s.Config.Storage.Profile, file.Name)
+			break
+		}
+	}
+
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, user.ProfilePicture),
+		ProfilePicture: profilePicture,
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,
@@ -153,14 +164,32 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 		return nil, utility.ErrInternalServer
 	}
 
-	oldFileName := user.ProfilePicture
-
 	if request.DeleteProfilePicture {
-		user.ProfilePicture = ""
+		if err := s.FileRepository.UnlinkFilesFromUser(tx, user.ID); err != nil {
+			slog.Error("Failed to unlink profile picture from user", "error", err)
+			return nil, utility.ErrInternalServer
+		}
 	}
 
+	var newProfilePictureName string
+	var newProfilePictureFile *entity.File
+
 	if request.ProfilePicture != nil {
-		user.ProfilePicture = utility.CreateFileName(request.ProfilePicture)
+		if err := s.FileRepository.UnlinkFilesFromUser(tx, user.ID); err != nil {
+			slog.Error("Failed to unlink old profile picture from user", "error", err)
+			return nil, utility.ErrInternalServer
+		}
+
+		newProfilePictureName = utility.CreateFileName(request.ProfilePicture)
+		newProfilePictureFile = &entity.File{
+			Name:         newProfilePictureName,
+			Type:         constant.FileTypeProfile,
+			UsedByUserID: &user.ID,
+		}
+		if err := s.FileRepository.Create(tx, newProfilePictureFile); err != nil {
+			slog.Error("Failed to create new profile picture file record", "error", err)
+			return nil, utility.ErrInternalServer
+		}
 	}
 
 	user.Name = request.Name
@@ -172,18 +201,12 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 		return nil, utility.ErrInternalServer
 	}
 
-	if (request.ProfilePicture != nil || request.DeleteProfilePicture) && oldFileName != "" {
-		destinationPath := filepath.Join(s.Config.Storage.Profile, oldFileName)
-		if err := s.StorageAdapter.Delete(destinationPath); err != nil {
-			slog.Error("Failed to delete old profile picture from storage", "error", err)
-			return nil, utility.ErrInternalServer
-		}
-	}
-
 	if request.ProfilePicture != nil {
-		destinationPath := filepath.Join(s.Config.Storage.Profile, user.ProfilePicture)
-		if err := s.StorageAdapter.Store(request.ProfilePicture, destinationPath); err != nil {
-			slog.Error("Failed to store new profile picture to storage", "error", err)
+		storagePath := s.Config.Storage.Profile
+		fullPath := filepath.Join(storagePath, newProfilePictureName)
+
+		if err := s.StorageAdapter.Store(request.ProfilePicture, fullPath); err != nil {
+			slog.Error("Failed to store new profile picture file", "error", err)
 			return nil, utility.ErrInternalServer
 		}
 	}
@@ -193,10 +216,15 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 		return nil, utility.ErrInternalServer
 	}
 
+	var profilePictureURL string
+	if newProfilePictureFile != nil {
+		profilePictureURL = utility.BuildImageURL(s.Config, s.Config.Storage.Profile, newProfilePictureFile.Name)
+	}
+
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, user.ProfilePicture),
+		ProfilePicture: profilePictureURL,
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,
@@ -264,10 +292,17 @@ func (s *UserService) Search(ctx context.Context, request *model.UserSearch, aut
 
 	var response []model.UserResponse
 	for _, v := range users {
+		var profilePicture string
+		for _, file := range v.Files {
+			if file.Type == constant.FileTypeProfile {
+				profilePicture = utility.BuildImageURL(s.Config, s.Config.Storage.Profile, file.Name)
+				break
+			}
+		}
 		response = append(response, model.UserResponse{
 			ID:             v.ID,
 			Name:           v.Name,
-			ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, v.ProfilePicture),
+			ProfilePicture: profilePicture,
 			PhoneNumber:    v.PhoneNumber,
 			Email:          v.Email,
 			Role:           v.Role,
@@ -312,10 +347,18 @@ func (s *UserService) Get(ctx context.Context, request *model.UserGet, auth *mod
 		return nil, utility.ErrNotFound
 	}
 
+	var profilePicture string
+	for _, file := range user.Files {
+		if file.Type == constant.FileTypeProfile {
+			profilePicture = utility.BuildImageURL(s.Config, s.Config.Storage.Profile, file.Name)
+			break
+		}
+	}
+
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, user.ProfilePicture),
+		ProfilePicture: profilePicture,
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,
@@ -347,19 +390,30 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 		return nil, utility.NewCustomError(http.StatusConflict, "Phone number already exist")
 	}
 
-	user := new(entity.User)
-	if request.ProfilePicture != nil {
-		user.ProfilePicture = utility.CreateFileName(request.ProfilePicture)
+	user := &entity.User{
+		Name:        request.Name,
+		Email:       request.Email,
+		PhoneNumber: request.PhoneNumber,
+		Role:        request.Role,
 	}
 
-	user.Name = request.Name
-	user.Email = request.Email
-	user.PhoneNumber = request.PhoneNumber
-	user.Role = request.Role
-
-	if err := s.UserRepository.Update(tx, user); err != nil {
+	if err := s.UserRepository.Create(tx, user); err != nil {
 		slog.Error("Failed to create user", "error", err)
 		return nil, utility.ErrInternalServer
+	}
+
+	var profilePictureName string
+	if request.ProfilePicture != nil {
+		profilePictureName = utility.CreateFileName(request.ProfilePicture)
+		profilePictureFile := &entity.File{
+			Name:         profilePictureName,
+			Type:         constant.FileTypeProfile,
+			UsedByUserID: &user.ID,
+		}
+		if err := s.FileRepository.Create(tx, profilePictureFile); err != nil {
+			slog.Error("Failed to create profile picture file record", "error", err)
+			return nil, utility.ErrInternalServer
+		}
 	}
 
 	code := uuid.New().String()
@@ -409,7 +463,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	}
 
 	if request.ProfilePicture != nil {
-		destinationPath := filepath.Join(s.Config.Storage.Profile, user.ProfilePicture)
+		destinationPath := filepath.Join(s.Config.Storage.Profile, profilePictureName)
 		if err := s.StorageAdapter.Store(request.ProfilePicture, destinationPath); err != nil {
 			slog.Error("Failed to store profile picture for new user", "error", err)
 			return nil, utility.ErrInternalServer
@@ -424,7 +478,7 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, user.ProfilePicture),
+		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, profilePictureName),
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,
@@ -467,19 +521,38 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 		}
 	}
 
+	if request.DeleteProfilePicture {
+		if err := s.FileRepository.UnlinkFilesFromUser(tx, user.ID); err != nil {
+			slog.Error("Failed to unlink profile picture from user", "error", err)
+			return nil, utility.ErrInternalServer
+		}
+	}
+
+	var newProfilePictureName string
+	var newProfilePictureFile *entity.File
+
+	if request.ProfilePicture != nil {
+		if err := s.FileRepository.UnlinkFilesFromUser(tx, user.ID); err != nil {
+			slog.Error("Failed to unlink old profile picture from user", "error", err)
+			return nil, utility.ErrInternalServer
+		}
+
+		newProfilePictureName = utility.CreateFileName(request.ProfilePicture)
+		newProfilePictureFile = &entity.File{
+			Name:         newProfilePictureName,
+			Type:         constant.FileTypeProfile,
+			UsedByUserID: &user.ID,
+		}
+		if err := s.FileRepository.Create(tx, newProfilePictureFile); err != nil {
+			slog.Error("Failed to create new profile picture file record", "error", err)
+			return nil, utility.ErrInternalServer
+		}
+	}
+
 	user.Name = request.Name
 	user.Email = request.Email
 	user.PhoneNumber = request.PhoneNumber
 	user.Role = request.Role
-	oldFileName := user.ProfilePicture
-
-	if request.DeleteProfilePicture {
-		user.ProfilePicture = ""
-	}
-
-	if request.ProfilePicture != nil {
-		user.ProfilePicture = utility.CreateFileName(request.ProfilePicture)
-	}
 
 	if request.Password != "" {
 		hashedPassword, err := utility.HashPassword(request.Password)
@@ -495,16 +568,8 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 		return nil, utility.ErrInternalServer
 	}
 
-	if (request.ProfilePicture != nil || request.DeleteProfilePicture) && oldFileName != "" {
-		destinationPath := filepath.Join(s.Config.Storage.Profile, oldFileName)
-		if err := s.StorageAdapter.Delete(destinationPath); err != nil {
-			slog.Error("Failed to delete old profile picture on user update", "error", err)
-			return nil, utility.ErrInternalServer
-		}
-	}
-
 	if request.ProfilePicture != nil {
-		destinationPath := filepath.Join(s.Config.Storage.Profile, user.ProfilePicture)
+		destinationPath := filepath.Join(s.Config.Storage.Profile, newProfilePictureName)
 		if err := s.StorageAdapter.Store(
 			request.ProfilePicture,
 			destinationPath,
@@ -519,10 +584,15 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 		return nil, utility.ErrInternalServer
 	}
 
+	var profilePictureURL string
+	if newProfilePictureFile != nil {
+		profilePictureURL = utility.BuildImageURL(s.Config, s.Config.Storage.Profile, newProfilePictureFile.Name)
+	}
+
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, user.ProfilePicture),
+		ProfilePicture: profilePictureURL,
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,
@@ -561,17 +631,14 @@ func (s *UserService) Delete(ctx context.Context, request *model.UserDelete, aut
 		return utility.ErrNotFound
 	}
 
-	if err := s.UserRepository.Delete(tx, user); err != nil {
-		slog.Error("Failed to delete user", "error", err)
+	if err := s.FileRepository.UnlinkFilesFromUser(tx, user.ID); err != nil {
+		slog.Error("Failed to unlink files from user", "error", err)
 		return utility.ErrInternalServer
 	}
 
-	if user.ProfilePicture != "" {
-		destinationPath := filepath.Join(s.Config.Storage.Profile, user.ProfilePicture)
-		if err := s.StorageAdapter.Delete(destinationPath); err != nil {
-			slog.Error("Failed to delete profile picture from storage on user delete", "error", err)
-			return utility.ErrInternalServer
-		}
+	if err := s.UserRepository.Delete(tx, user); err != nil {
+		slog.Error("Failed to delete user", "error", err)
+		return utility.ErrInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {

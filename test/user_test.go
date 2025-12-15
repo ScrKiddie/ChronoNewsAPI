@@ -3,6 +3,7 @@ package test
 import (
 	"bytes"
 	"chrononewsapi/internal/config"
+	"chrononewsapi/internal/constant"
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
 	"encoding/json"
@@ -413,10 +414,10 @@ func TestUserEndpoints(t *testing.T) {
 		err = json.NewDecoder(respCreate.Body).Decode(&createdUserResponse)
 		assert.NoError(t, err)
 		userIDToDeletePic := createdUserResponse.Data.ID
-		oldPictureName := createdUserResponse.Data.ProfilePicture
-		assert.NotEmpty(t, oldPictureName)
+		oldPictureURL := createdUserResponse.Data.ProfilePicture
+		assert.NotEmpty(t, oldPictureURL)
 
-		createdFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureName))
+		createdFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureURL))
 		_, err = os.Stat(createdFilePath)
 		assert.NoError(t, err, "Profile picture file should exist in storage after creation")
 
@@ -441,13 +442,17 @@ func TestUserEndpoints(t *testing.T) {
 		}()
 		assert.Equal(t, http.StatusOK, respUpdate.StatusCode)
 
-		var updatedUser entity.User
-		testDB.First(&updatedUser, userIDToDeletePic)
-		assert.Empty(t, updatedUser.ProfilePicture, "ProfilePicture field in DB should be empty")
+		var updatedUserResponse struct{ Data model.UserResponse }
+		err = json.NewDecoder(respUpdate.Body).Decode(&updatedUserResponse)
+		assert.NoError(t, err)
+		assert.Empty(t, updatedUserResponse.Data.ProfilePicture, "ProfilePicture in response should be empty")
 
-		filePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureName))
-		_, err = os.Stat(filePath)
-		assert.True(t, os.IsNotExist(err), "Old profile picture file should be deleted from storage")
+		var fileCount int64
+		testDB.Model(&entity.File{}).Where("used_by_user_id = ? AND type = ?", userIDToDeletePic, constant.FileTypeProfile).Count(&fileCount)
+		assert.Zero(t, fileCount, "Profile picture file should be unlinked in DB")
+
+		_, err = os.Stat(createdFilePath)
+		assert.NoError(t, err, "Old profile picture file should NOT be deleted from storage yet")
 	})
 
 	t.Run("Update User - Admin Replaces Profile Picture", func(t *testing.T) {
@@ -455,22 +460,23 @@ func TestUserEndpoints(t *testing.T) {
 		err = testDB.Where("email = ?", "user.pic.delete@example.com").First(&userToUpdate).Error
 		assert.NoError(t, err)
 
-		oldPictureName, err := updateUserProfileByAdmin(t, client, ts.URL, adminToken, &userToUpdate, "old_pic.png")
+		oldPictureURL, err := updateUserProfileByAdmin(t, client, ts.URL, adminToken, &userToUpdate, "old_pic.png")
 		assert.NoError(t, err)
-		assert.NotEmpty(t, oldPictureName, "First picture name should not be empty")
+		assert.NotEmpty(t, oldPictureURL, "First picture name should not be empty")
 
-		oldFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureName))
+		oldFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureURL))
 		_, err = os.Stat(oldFilePath)
 		assert.NoError(t, err, "First profile picture should exist before replacement")
 
-		newPictureName, err := updateUserProfileByAdmin(t, client, ts.URL, adminToken, &userToUpdate, "new_pic.png")
+		newPictureURL, err := updateUserProfileByAdmin(t, client, ts.URL, adminToken, &userToUpdate, "new_pic.png")
 		assert.NoError(t, err)
-		assert.NotEmpty(t, newPictureName, "New picture name should not be empty")
-		assert.NotEqual(t, oldPictureName, newPictureName)
+		assert.NotEmpty(t, newPictureURL, "New picture name should not be empty")
+		assert.NotEqual(t, oldPictureURL, newPictureURL)
 
 		_, err = os.Stat(oldFilePath)
-		assert.True(t, os.IsNotExist(err), "Old profile picture file should be deleted after replacement")
-		newFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(newPictureName))
+		assert.NoError(t, err, "Old profile picture file should NOT be deleted from storage yet")
+
+		newFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(newPictureURL))
 		_, err = os.Stat(newFilePath)
 		assert.NoError(t, err, "New profile picture file should exist after replacement")
 	})
@@ -691,10 +697,10 @@ func TestUserEndpoints(t *testing.T) {
 		var userResp1 struct{ Data model.UserResponse }
 		err = json.NewDecoder(resp1.Body).Decode(&userResp1)
 		assert.NoError(t, err)
-		oldPictureName := userResp1.Data.ProfilePicture
-		assert.NotEmpty(t, oldPictureName, "Initial picture name should not be empty")
+		oldPictureURL := userResp1.Data.ProfilePicture
+		assert.NotEmpty(t, oldPictureURL, "Initial picture name should not be empty")
 
-		oldFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureName))
+		oldFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(oldPictureURL))
 		_, err = os.Stat(oldFilePath)
 		assert.NoError(t, err, "Initial profile picture should exist before replacement")
 
@@ -702,14 +708,15 @@ func TestUserEndpoints(t *testing.T) {
 		err = testDB.Where("email = ?", "currentuser.updated@example.com").First(&currentUser).Error
 		assert.NoError(t, err)
 
-		newPictureName, err := updateCurrentUserProfile(t, client, ts.URL, adminToken, &currentUser, "replacement_pic.png")
+		newPictureURL, err := updateCurrentUserProfile(t, client, ts.URL, adminToken, &currentUser, "replacement_pic.png")
 		assert.NoError(t, err)
-		assert.NotEmpty(t, newPictureName, "New picture name should not be empty")
-		assert.NotEqual(t, oldPictureName, newPictureName)
+		assert.NotEmpty(t, newPictureURL, "New picture name should not be empty")
+		assert.NotEqual(t, oldPictureURL, newPictureURL)
 
 		_, err = os.Stat(oldFilePath)
-		assert.True(t, os.IsNotExist(err), "Old profile picture file should be deleted after replacement")
-		newFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(newPictureName))
+		assert.NoError(t, err, "Old profile picture file should NOT be deleted from storage yet")
+
+		newFilePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(newPictureURL))
 		_, err = os.Stat(newFilePath)
 		assert.NoError(t, err, "New profile picture file should exist after replacement")
 	})
@@ -742,10 +749,10 @@ func TestUserEndpoints(t *testing.T) {
 		var uploadResp struct{ Data model.UserResponse }
 		err = json.NewDecoder(respUpload.Body).Decode(&uploadResp)
 		assert.NoError(t, err)
-		pictureNameToDelete := uploadResp.Data.ProfilePicture
-		assert.NotEmpty(t, pictureNameToDelete, "Picture name should not be empty after upload")
+		pictureURLToDelete := uploadResp.Data.ProfilePicture
+		assert.NotEmpty(t, pictureURLToDelete, "Picture name should not be empty after upload")
 
-		filePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(pictureNameToDelete))
+		filePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(pictureURLToDelete))
 		_, err = os.Stat(filePath)
 		assert.NoError(t, err, "Profile picture file should exist in storage before deletion")
 
@@ -772,10 +779,13 @@ func TestUserEndpoints(t *testing.T) {
 		var updatedUser entity.User
 		err = testDB.Where("email = ?", "user.with.pic@example.com").First(&updatedUser).Error
 		assert.NoError(t, err)
-		assert.Empty(t, updatedUser.ProfilePicture, "ProfilePicture field in DB should be empty after deletion")
+
+		var fileCount int64
+		testDB.Model(&entity.File{}).Where("used_by_user_id = ? AND type = ?", updatedUser.ID, constant.FileTypeProfile).Count(&fileCount)
+		assert.Zero(t, fileCount, "Profile picture file should be unlinked in DB")
 
 		_, err = os.Stat(filePath)
-		assert.True(t, os.IsNotExist(err), "Profile picture file should be deleted from storage")
+		assert.NoError(t, err, "Profile picture file should NOT be deleted from storage")
 	})
 
 	t.Run("Update Current User Password", func(t *testing.T) {
@@ -871,7 +881,12 @@ func TestUserEndpoints(t *testing.T) {
 		var userToDelete entity.User
 		err := testDB.First(&userToDelete, newUserID).Error
 		assert.NoError(t, err)
-		profilePictureName := userToDelete.ProfilePicture
+
+		pictureURL, err := updateUserProfileByAdmin(t, client, ts.URL, adminToken, &userToDelete, "pic_to_be_deleted_with_user.png")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, pictureURL)
+
+		fileName := filepath.Base(pictureURL)
 
 		req, err := http.NewRequest("DELETE", ts.URL+fmt.Sprintf("/api/user/%d", newUserID), nil)
 		assert.NoError(t, err)
@@ -886,10 +901,10 @@ func TestUserEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		if profilePictureName != "" {
-			filePath := filepath.Join(appConfig.Storage.Profile, filepath.Base(profilePictureName))
+		if fileName != "" {
+			filePath := filepath.Join(appConfig.Storage.Profile, fileName)
 			_, err := os.Stat(filePath)
-			assert.True(t, os.IsNotExist(err), "Profile picture file should be deleted from storage")
+			assert.NoError(t, err, "Profile picture file should NOT be deleted from storage")
 		}
 	})
 

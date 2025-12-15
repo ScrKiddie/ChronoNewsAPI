@@ -18,7 +18,7 @@ func NewPostRepository() *PostRepository {
 }
 
 func (r *PostRepository) Search(db *gorm.DB, request *model.PostSearch, posts *[]entity.Post, excludeIDs []uint) (int64, error) {
-	query := db.Preload("User").
+	query := db.Preload("User.Files").
 		Preload("Category").
 		Preload("Files", "type = ?", constant.FileTypeThumbnail)
 	var conditions []string
@@ -95,14 +95,14 @@ func (r *PostRepository) Search(db *gorm.DB, request *model.PostSearch, posts *[
 
 func (r *PostRepository) FindByID(db *gorm.DB, post *entity.Post, id int32) error {
 	return db.Where("id = ?", id).
-		Preload("User").
+		Preload("User.Files").
 		Preload("Category").
 		Preload("Files").First(post).Error
 }
 
 func (r *PostRepository) FindByIDAndUserID(db *gorm.DB, post *entity.Post, postID int32, userID int32) error {
 	return db.Where("id = ?", postID).Where("user_id = ?", userID).
-		Preload("User").
+		Preload("User.Files").
 		Preload("Category").
 		Preload("Files").First(post).Error
 }

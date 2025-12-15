@@ -65,7 +65,7 @@ func Migrate(ctx context.Context, db *gorm.DB) error {
     DO $$
     BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'file_type') THEN
-            CREATE TYPE file_type AS ENUM ('thumbnail','attachment');
+            CREATE TYPE file_type AS ENUM ('thumbnail','attachment', 'profile');
         END IF;
     END $$;
 	`).Error; err != nil {
