@@ -72,8 +72,9 @@ The application requires specific environment variables to run. Below is the lis
 | **SMTP\_FROM\_EMAIL** | `string` | Email address of the sender for SMTP emails | `no-reply@domain.com` |
 | **STORAGE\_MODE** | `string` | Storage mode: `local` or `s3` | `s3` |
 | **STORAGE\_CDN\_URL** | `string` | Base URL for CDN (required if mode is `s3`, empty if `local`) | `https://cdn.mydomain.com` |
-| **STORAGE\_PROFILE** | `string` | Directory path/prefix for profile pictures | `./storage/profile_picture/` |
-| **STORAGE\_POST** | `string` | Directory path/prefix for post pictures | `./storage/post_picture/` |
+| **STORAGE\_THUMBNAIL** | `string` | Directory path/prefix for thumbnail images. | `./storage/thumbnail/` |
+| **STORAGE\_ATTACHMENT** | `string` | Directory path/prefix for attachment files. | `./storage/attachment/` |
+| **STORAGE\_PROFILE** | `string` | Directory path/prefix for profile pictures. | `./storage/profile_picture/` |
 | **STORAGE\_S3\_BUCKET** | `string` | S3 Bucket Name (Required if mode is `s3`) | `my-bucket` |
 | **STORAGE\_S3\_REGION** | `string` | S3 Region (e.g., `auto` for R2, `us-east-1` for AWS) | `auto` |
 | **STORAGE\_S3\_ACCESS\_KEY** | `string` | S3 Access Key ID | `access_key` |
@@ -89,6 +90,7 @@ The application uses a separate, minimal configuration for running tests. Most t
 *   **`storage`**: This entire section is **removed** from the test configuration. Tests automatically use a temporary local directory for file storage, which is created and deleted on the fly.
 *   **`reset`**: The reset token expiration (`reset.exp`) is hardcoded to `2` hours.
 *   **`web.client_url` & `web.client_paths`**: The client-facing URLs are hardcoded to mock values (e.g., `http://test-client.com/post`).
+*   **`db.migration`**: Database migration is **always** run automatically at the start of the test suite, regardless of any configuration value, to ensure a clean and consistent schema.
 
 **Environment Variables for Testing:**
 

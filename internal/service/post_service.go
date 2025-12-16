@@ -83,7 +83,7 @@ func (s *PostService) Search(ctx context.Context, request *model.PostSearch) (*[
 	for _, post := range posts {
 		var thumbnail string
 		if len(post.Files) > 0 {
-			thumbnail = utility.BuildImageURL(s.Config, s.Config.Storage.Post, post.Files[0].Name)
+			thumbnail = utility.BuildImageURL(s.Config, s.Config.Storage.Thumbnail, post.Files[0].Name)
 		}
 
 		var profilePicture string
@@ -151,7 +151,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 	fileMap := s.FileRepository.FindAsMap(db, fileIDs)
 
 	for id, fileName := range fileMap {
-		fileMap[id].Name = utility.BuildImageURL(s.Config, s.Config.Storage.Post, fileName.Name)
+		fileMap[id].Name = utility.BuildImageURL(s.Config, s.Config.Storage.Attachment, fileName.Name)
 	}
 
 	rebuiltContent, err := utility.RebuildContentWithImageSrc(post.Content, fileMap)
@@ -163,7 +163,7 @@ func (s *PostService) Get(ctx context.Context, request *model.PostGet) (*model.P
 	var thumbnail string
 	for _, file := range post.Files {
 		if file.Type == constant.FileTypeThumbnail {
-			thumbnail = utility.BuildImageURL(s.Config, s.Config.Storage.Post, file.Name)
+			thumbnail = utility.BuildImageURL(s.Config, s.Config.Storage.Thumbnail, file.Name)
 			break
 		}
 	}
@@ -299,7 +299,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	}
 
 	if request.Thumbnail != nil {
-		storagePath := s.Config.Storage.Post
+		storagePath := s.Config.Storage.Thumbnail
 		fullPath := filepath.Join(storagePath, thumbnailName)
 
 		if err := s.StorageAdapter.Store(request.Thumbnail, fullPath); err != nil {
@@ -322,7 +322,7 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		Content:    post.Content,
 		CreatedAt:  post.CreatedAt,
 		UpdatedAt:  post.UpdatedAt,
-		Thumbnail:  utility.BuildImageURL(s.Config, s.Config.Storage.Post, thumbnailName),
+		Thumbnail:  utility.BuildImageURL(s.Config, s.Config.Storage.Thumbnail, thumbnailName),
 	}
 
 	return response, nil
@@ -427,7 +427,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	}
 
 	if request.Thumbnail != nil {
-		storagePath := s.Config.Storage.Post
+		storagePath := s.Config.Storage.Thumbnail
 		fullPath := filepath.Join(storagePath, newThumbnailName)
 
 		if err := s.StorageAdapter.Store(request.Thumbnail, fullPath); err != nil {
@@ -454,7 +454,7 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		Content:    post.Content,
 		CreatedAt:  post.CreatedAt,
 		UpdatedAt:  post.UpdatedAt,
-		Thumbnail:  utility.BuildImageURL(s.Config, s.Config.Storage.Post, newThumbnailName),
+		Thumbnail:  utility.BuildImageURL(s.Config, s.Config.Storage.Thumbnail, newThumbnailName),
 	}
 
 	return response, nil

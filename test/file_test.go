@@ -81,7 +81,7 @@ func TestFileEndpoints(t *testing.T) {
 
 			fileName := filepath.Base(result.Data.Name)
 
-			filePath := filepath.Join(appConfig.Storage.Post, fileName)
+			filePath := filepath.Join(appConfig.Storage.Attachment, fileName)
 			err := os.Remove(filePath)
 			assert.NoError(t, err, "Failed to delete uploaded test file")
 		})

@@ -6,6 +6,7 @@ import (
 	"chrononewsapi/internal/config"
 	"chrononewsapi/internal/entity"
 	"chrononewsapi/internal/model"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -74,13 +75,16 @@ func setupTestServer() {
 		os.Exit(1)
 	}
 
-	postsDir := filepath.Join(testTempDir, "posts")
+	thumbnailsDir := filepath.Join(testTempDir, "thumbnails")
+	attachmentsDir := filepath.Join(testTempDir, "attachments")
 	profilesDir := filepath.Join(testTempDir, "profiles")
 
-	_ = os.MkdirAll(postsDir, 0755)
+	_ = os.MkdirAll(thumbnailsDir, 0755)
+	_ = os.MkdirAll(attachmentsDir, 0755)
 	_ = os.MkdirAll(profilesDir, 0755)
 
-	appConfig.Storage.Post = postsDir
+	appConfig.Storage.Thumbnail = thumbnailsDir
+	appConfig.Storage.Attachment = attachmentsDir
 	appConfig.Storage.Profile = profilesDir
 
 	validator := config.NewValidator()
@@ -88,9 +92,8 @@ func setupTestServer() {
 
 	bootstrap.Init(testRouter, testDB, appConfig, validator, client, nil)
 
-	err = testDB.AutoMigrate(&entity.User{}, &entity.Category{}, &entity.Post{}, &entity.File{}, &entity.Reset{})
-	if err != nil {
-		slog.Error("Failed to auto migrate database for tests", "err", err)
+	if err := config.Migrate(context.Background(), testDB); err != nil {
+		slog.Error("Failed to migrate database for tests", "err", err)
 		os.Exit(1)
 	}
 }
@@ -166,9 +169,11 @@ func TestMain(m *testing.M) {
 }
 
 func clearTables(db *gorm.DB) {
-	db.Where("1 = 1").Delete(&entity.Reset{})
-	db.Where("1 = 1").Delete(&entity.File{})
-	db.Where("1 = 1").Delete(&entity.Post{})
-	db.Where("1 = 1").Delete(&entity.Category{})
-	db.Where("1 = 1").Delete(&entity.User{})
+	db.Exec("DELETE FROM source_files_to_delete")
+	db.Exec("DELETE FROM dead_letter_queue")
+	db.Exec("DELETE FROM reset")
+	db.Exec("DELETE FROM file")
+	db.Exec("DELETE FROM post")
+	db.Exec("DELETE FROM category")
+	db.Exec("DELETE FROM \"user\"")
 }

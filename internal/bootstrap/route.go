@@ -90,7 +90,8 @@ func (r *Route) Setup() {
 			r.App.Handle(routePattern, http.StripPrefix(prefix, http.FileServer(http.Dir(physicalPath))))
 		}
 
+		serveStatic(r.Config.Storage.Thumbnail)
+		serveStatic(r.Config.Storage.Attachment)
 		serveStatic(r.Config.Storage.Profile)
-		serveStatic(r.Config.Storage.Post)
 	}
 }

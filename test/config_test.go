@@ -26,6 +26,15 @@ type TestCaptchaConfig struct {
 	Secret TestCaptchaSecretConfig `mapstructure:"secret"`
 }
 
+type TestDBConfig struct {
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Name     string `mapstructure:"name"`
+	SslMode  string `mapstructure:"sslmode"`
+}
+
 type TestConfig struct {
 	JWT     config.JWTConfig  `mapstructure:"jwt"`
 	Web     TestWebConfig     `mapstructure:"web"`
@@ -46,7 +55,7 @@ func loadTestConfig() *TestConfig {
 		"test.jwt.secret", "test.jwt.exp",
 		"test.web.port", "test.web.cors_origins",
 		"test.captcha.secret.pass", "test.captcha.secret.fail", "test.captcha.secret.usage",
-		"test.db.user", "test.db.password", "test.db.host", "test.db.port", "test.db.name", "test.db.migration", "test.db.sslmode",
+		"test.db.user", "test.db.password", "test.db.host", "test.db.port", "test.db.name", "test.db.sslmode",
 		"test.smtp.host", "test.smtp.port", "test.smtp.username", "test.smtp.password",
 		"test.smtp.from.name", "test.smtp.from.email",
 	}

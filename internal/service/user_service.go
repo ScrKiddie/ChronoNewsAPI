@@ -631,11 +631,6 @@ func (s *UserService) Delete(ctx context.Context, request *model.UserDelete, aut
 		return utility.ErrNotFound
 	}
 
-	if err := s.FileRepository.UnlinkFilesFromUser(tx, user.ID); err != nil {
-		slog.Error("Failed to unlink files from user", "error", err)
-		return utility.ErrInternalServer
-	}
-
 	if err := s.UserRepository.Delete(tx, user); err != nil {
 		slog.Error("Failed to delete user", "error", err)
 		return utility.ErrInternalServer

@@ -30,7 +30,8 @@
   "storage": {
     "mode": "YOUR_STORAGE_MODE",
     "cdn_url": "YOUR_R2_OR_S3_CDN_URL",
-    "post": "./storage/post_picture",
+    "thumbnail": "./storage/thumbnail",
+    "attachment": "./storage/attachment",
     "profile": "./storage/profile_picture",
     "s3": {
       "bucket": "YOUR_S3_BUCKET_NAME",
@@ -75,8 +76,7 @@
       "host": "YOUR_TEST_DB_HOST",
       "port": 5432,
       "name": "YOUR_TEST_DB_NAME",
-      "sslmode": "disable",
-      "migration": false
+      "sslmode": "disable"
     },
     "smtp": {
       "host": "localhost",

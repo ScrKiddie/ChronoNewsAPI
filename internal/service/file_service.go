@@ -58,7 +58,7 @@ func (s *FileService) UploadImage(ctx context.Context, fileHeader *multipart.Fil
 		return nil, utility.ErrInternalServer
 	}
 
-	destinationPath := filepath.Join(s.Config.Storage.Post, fileName)
+	destinationPath := filepath.Join(s.Config.Storage.Attachment, fileName)
 	if err := s.StorageAdapter.Store(fileHeader, destinationPath); err != nil {
 		slog.Error("Failed to store file to storage", "error", err)
 		return nil, utility.ErrInternalServer
@@ -71,6 +71,6 @@ func (s *FileService) UploadImage(ctx context.Context, fileHeader *multipart.Fil
 
 	return &model.ImageUploadResponse{
 		ID:   fileEntity.ID,
-		Name: utility.BuildImageURL(s.Config, s.Config.Storage.Post, fileEntity.Name),
+		Name: utility.BuildImageURL(s.Config, s.Config.Storage.Attachment, fileEntity.Name),
 	}, nil
 }

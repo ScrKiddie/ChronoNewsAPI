@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 )
 
 func TestUserEndpoints(t *testing.T) {
@@ -886,7 +887,10 @@ func TestUserEndpoints(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, pictureURL)
 
-		fileName := filepath.Base(pictureURL)
+		var fileBeforeDelete entity.File
+		err = testDB.Where("used_by_user_id = ?", newUserID).First(&fileBeforeDelete).Error
+		assert.NoError(t, err, "Should find the file associated with the user before deletion")
+		assert.NotZero(t, fileBeforeDelete.ID, "File ID should not be zero")
 
 		req, err := http.NewRequest("DELETE", ts.URL+fmt.Sprintf("/api/user/%d", newUserID), nil)
 		assert.NoError(t, err)
@@ -901,11 +905,15 @@ func TestUserEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		if fileName != "" {
-			filePath := filepath.Join(appConfig.Storage.Profile, fileName)
-			_, err := os.Stat(filePath)
-			assert.NoError(t, err, "Profile picture file should NOT be deleted from storage")
-		}
+		var userAfterDelete entity.User
+		err = testDB.First(&userAfterDelete, newUserID).Error
+		assert.Error(t, err, "User should be deleted from the database")
+		assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+		var fileAfterDelete entity.File
+		err = testDB.First(&fileAfterDelete, fileBeforeDelete.ID).Error
+		assert.NoError(t, err, "File record should still exist after user deletion")
+		assert.Nil(t, fileAfterDelete.UsedByUserID, "File's used_by_user_id should be set to NULL")
 	})
 
 	t.Run("Delete User - Not Found", func(t *testing.T) {

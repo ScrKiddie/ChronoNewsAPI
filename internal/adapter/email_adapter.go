@@ -83,7 +83,6 @@ func sendMailWithTimeout(addr string, request *model.EmailData, msg string, time
 	}
 	defer client.Close()
 
-	// Set deadlines for the connection
 	deadline := time.Now().Add(timeout)
 	if err := conn.SetDeadline(deadline); err != nil {
 		return err
@@ -95,7 +94,6 @@ func sendMailWithTimeout(addr string, request *model.EmailData, msg string, time
 		return err
 	}
 
-	// Check if TLS is required
 	if ok, _ := client.Extension("STARTTLS"); ok {
 		tlsConfig := &tls.Config{
 			ServerName: host,

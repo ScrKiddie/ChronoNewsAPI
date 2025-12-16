@@ -57,11 +57,12 @@ type S3Config struct {
 }
 
 type StorageConfig struct {
-	Mode    string   `mapstructure:"mode"`
-	CdnURL  string   `mapstructure:"cdn_url"`
-	Post    string   `mapstructure:"post"`
-	Profile string   `mapstructure:"profile"`
-	S3      S3Config `mapstructure:"s3"`
+	Mode       string   `mapstructure:"mode"`
+	CdnURL     string   `mapstructure:"cdn_url"`
+	Thumbnail  string   `mapstructure:"thumbnail"`
+	Attachment string   `mapstructure:"attachment"`
+	Profile    string   `mapstructure:"profile"`
+	S3         S3Config `mapstructure:"s3"`
 }
 
 type ResetConfig struct {
@@ -100,7 +101,7 @@ func NewConfig() *Config {
 
 		"captcha.secret",
 
-		"storage.mode", "storage.cdn_url", "storage.post", "storage.profile",
+		"storage.mode", "storage.cdn_url", "storage.thumbnail", "storage.attachment", "storage.profile",
 		"storage.s3.bucket", "storage.s3.region", "storage.s3.access_key", "storage.s3.secret_key", "storage.s3.endpoint",
 
 		"reset.exp",
@@ -220,8 +221,11 @@ func validateConfig(cfg *Config) error {
 			missingFields = append(missingFields, "storage.cdn_url (required for S3 mode)")
 		}
 	} else if cfg.Storage.Mode == "local" {
-		if cfg.Storage.Post == "" {
-			missingFields = append(missingFields, "storage.post")
+		if cfg.Storage.Thumbnail == "" {
+			missingFields = append(missingFields, "storage.thumbnail")
+		}
+		if cfg.Storage.Attachment == "" {
+			missingFields = append(missingFields, "storage.attachment")
 		}
 		if cfg.Storage.Profile == "" {
 			missingFields = append(missingFields, "storage.profile")

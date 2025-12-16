@@ -7,7 +7,7 @@ type User struct {
 	Email       string `gorm:"type:varchar(255);unique;not null;column:email"`
 	Password    string `gorm:"type:varchar(255);column:password"`
 	Role        string `gorm:"type:user_type;not null;column:role"`
-	Files       []File `gorm:"foreignKey:UsedByUserID"`
+	Files       []File `gorm:"foreignKey:UsedByUserID;constraint:OnDelete:SET NULL"`
 }
 
 func (User) TableName() string {

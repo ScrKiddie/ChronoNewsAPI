@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 )
 
 func createTestCategory(t *testing.T, client *http.Client, token, serverURL string) (int32, error) {
@@ -118,7 +119,7 @@ func TestPostEndpoints(t *testing.T) {
 
 		fileName := filepath.Base(result.Data.Thumbnail)
 
-		filePath := filepath.Join(appConfig.Storage.Post, fileName)
+		filePath := filepath.Join(appConfig.Storage.Thumbnail, fileName)
 		_, err = os.Stat(filePath)
 		assert.NoError(t, err, "Thumbnail file should exist in storage after post creation")
 	})
@@ -500,7 +501,41 @@ func TestPostEndpoints(t *testing.T) {
 	})
 
 	t.Run("Delete Post", func(t *testing.T) {
-		req, err := http.NewRequest("DELETE", ts.URL+fmt.Sprintf("/api/post/%d", newPostID), nil)
+		var b bytes.Buffer
+		w := multipart.NewWriter(&b)
+		dummyPNGReader := createDummyPNG(t)
+		fw, err := w.CreateFormFile("thumbnail", "delete_test_thumbnail.png")
+		assert.NoError(t, err)
+		_, err = io.Copy(fw, dummyPNGReader)
+		assert.NoError(t, err)
+		assert.NoError(t, w.WriteField("title", "Post To Delete"))
+		assert.NoError(t, w.WriteField("summary", "Summary"))
+		assert.NoError(t, w.WriteField("content", "Content"))
+		assert.NoError(t, w.WriteField("categoryID", fmt.Sprintf("%d", categoryID)))
+		assert.NoError(t, w.Close())
+
+		reqCreate, err := http.NewRequest("POST", ts.URL+"/api/post", &b)
+		assert.NoError(t, err)
+		reqCreate.Header.Set("Content-Type", w.FormDataContentType())
+		reqCreate.Header.Set("Authorization", "Bearer "+adminToken)
+		respCreate, err := client.Do(reqCreate)
+		assert.NoError(t, err)
+		defer respCreate.Body.Close()
+		assert.Equal(t, http.StatusCreated, respCreate.StatusCode)
+
+		var createResult struct {
+			Data model.PostResponse `json:"data"`
+		}
+		err = json.NewDecoder(respCreate.Body).Decode(&createResult)
+		assert.NoError(t, err)
+		postIDToDelete := createResult.Data.ID
+
+		var fileBeforeDelete entity.File
+		err = testDB.Where("used_by_post_id = ?", postIDToDelete).First(&fileBeforeDelete).Error
+		assert.NoError(t, err, "Should find the file associated with the post before deletion")
+		assert.NotZero(t, fileBeforeDelete.ID, "File ID should not be zero")
+
+		req, err := http.NewRequest("DELETE", ts.URL+fmt.Sprintf("/api/post/%d", postIDToDelete), nil)
 		assert.NoError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminToken)
 
@@ -513,9 +548,15 @@ func TestPostEndpoints(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var fileCount int64
-		testDB.Model(&entity.File{}).Where("post_id = ?", newPostID).Count(&fileCount)
-		assert.Zero(t, fileCount, "File records associated with the post should be deleted from the database")
+		var postAfterDelete entity.Post
+		err = testDB.First(&postAfterDelete, postIDToDelete).Error
+		assert.Error(t, err, "Post should be deleted from the database")
+		assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+		var fileAfterDelete entity.File
+		err = testDB.First(&fileAfterDelete, fileBeforeDelete.ID).Error
+		assert.NoError(t, err, "File record should still exist after post deletion")
+		assert.Nil(t, fileAfterDelete.UsedByPostID, "File's used_by_post_id should be set to NULL")
 	})
 
 	t.Run("Delete Post - As Journalist (Owner)", func(t *testing.T) {
