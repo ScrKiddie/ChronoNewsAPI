@@ -57,6 +57,8 @@ func (s *UserService) Login(ctx context.Context, request *model.UserLogin) (*mod
 		return nil, utility.ErrBadRequest
 	}
 
+	request.Email = utility.NormalizeEmail(request.Email)
+
 	captchaRequest := &model.CaptchaRequest{
 		TokenCaptcha: request.TokenCaptcha,
 		Secret:       s.Config.Captcha.Secret,
@@ -146,6 +148,8 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 		slog.Error("Validation failed for user profile update", "error", err)
 		return nil, utility.ErrBadRequest
 	}
+
+	request.Email = utility.NormalizeEmail(request.Email)
 
 	tx := s.DB.WithContext(ctx).Begin()
 	defer tx.Rollback()
@@ -382,6 +386,8 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 		return nil, utility.ErrBadRequest
 	}
 
+	request.Email = utility.NormalizeEmail(request.Email)
+
 	if unique := s.UserRepository.FindIDByEmail(tx, request.Email); unique != 0 {
 		return nil, utility.NewCustomError(http.StatusConflict, "Email already exists")
 	}
@@ -502,6 +508,8 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 		slog.Error("Validation failed for user update", "error", err)
 		return nil, utility.ErrBadRequest
 	}
+
+	request.Email = utility.NormalizeEmail(request.Email)
 
 	user := new(entity.User)
 	if err := s.UserRepository.FindByID(tx, user, request.ID); err != nil {

@@ -26,15 +26,6 @@ type TestCaptchaConfig struct {
 	Secret TestCaptchaSecretConfig `mapstructure:"secret"`
 }
 
-type TestDBConfig struct {
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	Name     string `mapstructure:"name"`
-	SslMode  string `mapstructure:"sslmode"`
-}
-
 type TestConfig struct {
 	JWT     config.JWTConfig  `mapstructure:"jwt"`
 	Web     TestWebConfig     `mapstructure:"web"`

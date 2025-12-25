@@ -58,6 +58,8 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 		return utility.ErrBadRequest
 	}
 
+	request.Email = utility.NormalizeEmail(request.Email)
+
 	captchaRequest := &model.CaptchaRequest{
 		TokenCaptcha: request.TokenCaptcha,
 		Secret:       s.Config.Captcha.Secret,
@@ -77,6 +79,7 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 
 	id := s.UserRepository.FindIDByEmail(tx, request.Email)
 	if id == 0 {
+		slog.Warn("Reset password request for non-existent email", "email", request.Email)
 		return nil
 	}
 
@@ -89,7 +92,7 @@ func (s *ResetService) ResetEmail(ctx context.Context, request *model.ResetEmail
 	reset.ExpiredAt = expiredAt
 
 	if err != nil {
-		slog.Error("Failed to find reset token by user ID, attempting to create new one", "error", err)
+		slog.Info("No existing reset token found for user, creating a new one.", "userID", id)
 		if err := s.ResetRepository.Create(tx, reset); err != nil {
 			slog.Error("Failed to create reset token", "error", err)
 			return utility.ErrInternalServer

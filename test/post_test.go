@@ -520,7 +520,10 @@ func TestPostEndpoints(t *testing.T) {
 		reqCreate.Header.Set("Authorization", "Bearer "+adminToken)
 		respCreate, err := client.Do(reqCreate)
 		assert.NoError(t, err)
-		defer respCreate.Body.Close()
+		defer func() {
+			err := respCreate.Body.Close()
+			assert.NoError(t, err)
+		}()
 		assert.Equal(t, http.StatusCreated, respCreate.StatusCode)
 
 		var createResult struct {
