@@ -280,11 +280,14 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 	}
 
 	var thumbnailName string
+	var thumbnailFile *entity.File
+
 	if request.Thumbnail != nil {
 		thumbnailName = utility.CreateFileName(request.Thumbnail)
-		thumbnailFile := &entity.File{
+		thumbnailFile = &entity.File{
 			Name:         thumbnailName,
 			Type:         constant.FileTypeThumbnail,
+			Status:       constant.FileStatusPending,
 			UsedByPostID: &post.ID,
 		}
 		if err := s.FileRepository.Create(tx, thumbnailFile); err != nil {
@@ -298,19 +301,24 @@ func (s *PostService) Create(ctx context.Context, request *model.PostCreate, aut
 		return nil, utility.ErrInternalServer
 	}
 
+	if err := tx.Commit().Error; err != nil {
+		slog.Error("Failed to commit transaction for post create", "error", err)
+		return nil, utility.ErrInternalServer
+	}
+
 	if request.Thumbnail != nil {
 		storagePath := s.Config.Storage.Thumbnail
 		fullPath := filepath.Join(storagePath, thumbnailName)
 
 		if err := s.StorageAdapter.Store(request.Thumbnail, fullPath); err != nil {
 			slog.Error("Failed to store thumbnail file", "error", err)
-			return nil, utility.ErrInternalServer
-		}
-	}
 
-	if err := tx.Commit().Error; err != nil {
-		slog.Error("Failed to commit transaction for post create", "error", err)
-		return nil, utility.ErrInternalServer
+			if delErr := s.FileRepository.Delete(s.DB.WithContext(ctx), thumbnailFile); delErr != nil {
+				slog.Error("Failed to delete file record after storage failure", "error", delErr)
+			}
+
+			thumbnailName = ""
+		}
 	}
 
 	response := &model.PostResponse{
@@ -382,8 +390,9 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 	if request.Thumbnail != nil {
 		newThumbnailName = utility.CreateFileName(request.Thumbnail)
 		newThumbnailFile = &entity.File{
-			Name: newThumbnailName,
-			Type: constant.FileTypeThumbnail,
+			Name:   newThumbnailName,
+			Type:   constant.FileTypeThumbnail,
+			Status: constant.FileStatusPending,
 		}
 		if err := s.FileRepository.Create(tx, newThumbnailFile); err != nil {
 			slog.Error("Failed to create new thumbnail file record", "error", err)
@@ -426,19 +435,25 @@ func (s *PostService) Update(ctx context.Context, request *model.PostUpdate, aut
 		return nil, utility.ErrInternalServer
 	}
 
+	if err := tx.Commit().Error; err != nil {
+		slog.Error("Failed to commit transaction for post update", "error", err)
+		return nil, utility.ErrInternalServer
+	}
+
 	if request.Thumbnail != nil {
 		storagePath := s.Config.Storage.Thumbnail
 		fullPath := filepath.Join(storagePath, newThumbnailName)
 
 		if err := s.StorageAdapter.Store(request.Thumbnail, fullPath); err != nil {
 			slog.Error("Failed to store new thumbnail file", "error", err)
-			return nil, utility.ErrInternalServer
-		}
-	}
 
-	if err := tx.Commit().Error; err != nil {
-		slog.Error("Failed to commit transaction for post update", "error", err)
-		return nil, utility.ErrInternalServer
+			if delErr := s.FileRepository.Delete(s.DB.WithContext(ctx), newThumbnailFile); delErr != nil {
+				slog.Error("Failed to delete file record after storage failure", "error", delErr)
+			}
+
+			newThumbnailFile = nil
+			newThumbnailName = ""
+		}
 	}
 
 	if newThumbnailName == "" && oldThumbnailFile != nil && !request.DeleteThumbnail {

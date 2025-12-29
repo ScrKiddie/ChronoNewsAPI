@@ -42,9 +42,6 @@ func (s *FileService) UploadImage(ctx context.Context, fileHeader *multipart.Fil
 		return nil, utility.ErrBadRequest
 	}
 
-	tx := s.DB.WithContext(ctx).Begin()
-	defer tx.Rollback()
-
 	fileName := utility.CreateFileName(fileHeader)
 
 	fileEntity := entity.File{
@@ -53,7 +50,7 @@ func (s *FileService) UploadImage(ctx context.Context, fileHeader *multipart.Fil
 		Type:   constant.FileTypeAttachment,
 	}
 
-	if err := s.FileRepository.Create(tx, &fileEntity); err != nil {
+	if err := s.FileRepository.Create(s.DB.WithContext(ctx), &fileEntity); err != nil {
 		slog.Error("Failed to create file record in database", "error", err)
 		return nil, utility.ErrInternalServer
 	}
@@ -61,11 +58,10 @@ func (s *FileService) UploadImage(ctx context.Context, fileHeader *multipart.Fil
 	destinationPath := filepath.Join(s.Config.Storage.Attachment, fileName)
 	if err := s.StorageAdapter.Store(fileHeader, destinationPath); err != nil {
 		slog.Error("Failed to store file to storage", "error", err)
-		return nil, utility.ErrInternalServer
-	}
 
-	if err := tx.Commit().Error; err != nil {
-		slog.Error("Failed to commit transaction for file upload", "error", err)
+		if delErr := s.FileRepository.Delete(s.DB.WithContext(ctx), &fileEntity); delErr != nil {
+			slog.Error("Failed to delete file record after storage failure", "error", delErr)
+		}
 		return nil, utility.ErrInternalServer
 	}
 

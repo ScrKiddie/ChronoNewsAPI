@@ -188,6 +188,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 		newProfilePictureFile = &entity.File{
 			Name:         newProfilePictureName,
 			Type:         constant.FileTypeProfile,
+			Status:       constant.FileStatusPending,
 			UsedByUserID: &user.ID,
 		}
 		if err := s.FileRepository.Create(tx, newProfilePictureFile); err != nil {
@@ -205,19 +206,22 @@ func (s *UserService) UpdateProfile(ctx context.Context, request *model.UserUpda
 		return nil, utility.ErrInternalServer
 	}
 
+	if err := tx.Commit().Error; err != nil {
+		slog.Error("Failed to commit transaction for user profile update", "error", err)
+		return nil, utility.ErrInternalServer
+	}
+
 	if request.ProfilePicture != nil {
 		storagePath := s.Config.Storage.Profile
 		fullPath := filepath.Join(storagePath, newProfilePictureName)
 
 		if err := s.StorageAdapter.Store(request.ProfilePicture, fullPath); err != nil {
 			slog.Error("Failed to store new profile picture file", "error", err)
-			return nil, utility.ErrInternalServer
+			if delErr := s.FileRepository.Delete(s.DB.WithContext(ctx), newProfilePictureFile); delErr != nil {
+				slog.Error("Failed to delete file record after storage failure", "error", delErr)
+			}
+			newProfilePictureFile = nil
 		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		slog.Error("Failed to commit transaction for user profile update", "error", err)
-		return nil, utility.ErrInternalServer
 	}
 
 	var profilePictureURL string
@@ -409,11 +413,14 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 	}
 
 	var profilePictureName string
+	var profilePictureFile *entity.File
+
 	if request.ProfilePicture != nil {
 		profilePictureName = utility.CreateFileName(request.ProfilePicture)
-		profilePictureFile := &entity.File{
+		profilePictureFile = &entity.File{
 			Name:         profilePictureName,
 			Type:         constant.FileTypeProfile,
+			Status:       constant.FileStatusPending,
 			UsedByUserID: &user.ID,
 		}
 		if err := s.FileRepository.Create(tx, profilePictureFile); err != nil {
@@ -468,23 +475,31 @@ func (s *UserService) Create(ctx context.Context, request *model.UserCreate, aut
 		return nil, utility.ErrInternalServer
 	}
 
-	if request.ProfilePicture != nil {
-		destinationPath := filepath.Join(s.Config.Storage.Profile, profilePictureName)
-		if err := s.StorageAdapter.Store(request.ProfilePicture, destinationPath); err != nil {
-			slog.Error("Failed to store profile picture for new user", "error", err)
-			return nil, utility.ErrInternalServer
-		}
-	}
-
 	if err := tx.Commit().Error; err != nil {
 		slog.Error("Failed to commit transaction for user create", "error", err)
 		return nil, utility.ErrInternalServer
 	}
 
+	if request.ProfilePicture != nil {
+		destinationPath := filepath.Join(s.Config.Storage.Profile, profilePictureName)
+		if err := s.StorageAdapter.Store(request.ProfilePicture, destinationPath); err != nil {
+			slog.Error("Failed to store profile picture for new user", "error", err)
+			if delErr := s.FileRepository.Delete(s.DB.WithContext(ctx), profilePictureFile); delErr != nil {
+				slog.Error("Failed to delete file record after storage failure", "error", delErr)
+			}
+			profilePictureName = ""
+		}
+	}
+
+	var profilePictureURL string
+	if profilePictureName != "" {
+		profilePictureURL = utility.BuildImageURL(s.Config, s.Config.Storage.Profile, profilePictureName)
+	}
+
 	return &model.UserResponse{
 		ID:             user.ID,
 		Name:           user.Name,
-		ProfilePicture: utility.BuildImageURL(s.Config, s.Config.Storage.Profile, profilePictureName),
+		ProfilePicture: profilePictureURL,
 		PhoneNumber:    user.PhoneNumber,
 		Email:          user.Email,
 		Role:           user.Role,
@@ -549,6 +564,7 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 		newProfilePictureFile = &entity.File{
 			Name:         newProfilePictureName,
 			Type:         constant.FileTypeProfile,
+			Status:       constant.FileStatusPending,
 			UsedByUserID: &user.ID,
 		}
 		if err := s.FileRepository.Create(tx, newProfilePictureFile); err != nil {
@@ -576,6 +592,11 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 		return nil, utility.ErrInternalServer
 	}
 
+	if err := tx.Commit().Error; err != nil {
+		slog.Error("Failed to commit transaction for user update", "error", err)
+		return nil, utility.ErrInternalServer
+	}
+
 	if request.ProfilePicture != nil {
 		destinationPath := filepath.Join(s.Config.Storage.Profile, newProfilePictureName)
 		if err := s.StorageAdapter.Store(
@@ -583,13 +604,11 @@ func (s *UserService) Update(ctx context.Context, request *model.UserUpdate, aut
 			destinationPath,
 		); err != nil {
 			slog.Error("Failed to store new profile picture on user update", "error", err)
-			return nil, utility.ErrInternalServer
+			if delErr := s.FileRepository.Delete(s.DB.WithContext(ctx), newProfilePictureFile); delErr != nil {
+				slog.Error("Failed to delete file record after storage failure", "error", delErr)
+			}
+			newProfilePictureFile = nil
 		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		slog.Error("Failed to commit transaction for user update", "error", err)
-		return nil, utility.ErrInternalServer
 	}
 
 	var profilePictureURL string
